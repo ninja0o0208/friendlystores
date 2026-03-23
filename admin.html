@@ -14,15 +14,19 @@
         th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; vertical-align: middle; }
         th { background: #007bff; color: white; position: sticky; top: 0; }
         .tag { display: inline-block; background: #28a745; color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; margin: 2px; }
-        .btn-link { display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 20px; text-decoration: none; font-size: 12px; font-weight: bold; margin: 2px; color: white !important; cursor: pointer; border: none; }
-        .loc-btn { background: #22c55e; } /* 地圖定位按鈕顏色 */
-        .nav-btn { background: #1a73e8; }
-        .edit-btn { background: #ffc107; color: #333 !important; }
-        .del-btn { background: #dc3545; }
+        
+        /* 按鈕樣式優化 */
+        .btn-link { display: inline-flex; align-items: center; padding: 6px 14px; border-radius: 20px; text-decoration: none; font-size: 12px; font-weight: bold; margin: 2px; color: white !important; cursor: pointer; border: none; }
+        .loc-btn { background: #22c55e; } /* 地圖定位按鈕 */
+        .nav-btn { background: #1a73e8; } /* 導航按鈕 */
+        .edit-btn { background: #ffc107; color: #333 !important; } /* 修改按鈕 */
+        .del-btn { background: #dc3545; } /* 刪除按鈕 */
+        
         .chief-tag { display: inline-block; padding: 4px 12px; border-radius: 20px; border: 1px solid #ddd; font-weight: bold; font-size: 13px; }
         .chief-female { background-color: #ffeef2; border-color: #ffc0cb; color: #d63384; } 
         .chief-male { background-color: #f0f7ff; border-color: #b3d7ff; color: #007bff; }
         .photo-thumb { width: 45px; height: 45px; border-radius: 4px; margin-right: 3px; object-fit: cover; border: 1px solid #eee; }
+        
         #editModal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; box-shadow:0 0 25px rgba(0,0,0,0.2); border-radius:12px; z-index:100; width:450px; }
         .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:99; }
     </style>
@@ -46,15 +50,19 @@
         <tbody id="storeList"></tbody>
     </table>
 </div>
+
 <div id="modalOverlay" class="modal-overlay" onclick="closeModal()"></div>
 <div id="editModal">
-    <h3>✏️ 編輯資訊</h3>
+    <h3>✏️ 編輯店家資訊</h3>
     <input type="hidden" id="editId">
     店名 <input type="text" id="editName" style="width:100%; margin-bottom:12px;">
     地址 <input type="text" id="editAddr" style="width:100%; margin-bottom:12px;">
-    Lat <input type="text" id="editLat" style="width:35%;"> Lng <input type="text" id="editLng" style="width:35%;"><br><br>
+    緯度 (Lat) <input type="text" id="editLat" style="width:35%;"> 經度 (Lng) <input type="text" id="editLng" style="width:35%;"><br><br>
     物資：<br>
-    <input type="checkbox" id="editTissues"> 面紙 <input type="checkbox" id="editBox"> 面紙盒 <input type="checkbox" id="editBanners"> 布條 <input type="checkbox" id="editBoards"> 看板<br><br>
+    <label><input type="checkbox" id="editTissues"> 面紙</label> 
+    <label><input type="checkbox" id="editBox"> 面紙盒</label> 
+    <label><input type="checkbox" id="editBanners"> 布條</label> 
+    <label><input type="checkbox" id="editBoards"> 看板</label><br><br>
     備註 <input type="text" id="editNotes" style="width:100%; margin-bottom:15px;">
     <button onclick="saveEdit()" style="background:#28a745; color:white; border:none; padding:12px; width:100%; cursor:pointer; font-weight:bold; border-radius:8px;">✅ 儲存修改</button>
 </div>
@@ -99,8 +107,11 @@
     function render(data) {
         const list = document.getElementById('storeList'); list.innerHTML = '';
         data.forEach(x => {
-            let items = []; if(x.tissues) items.push('散裝面紙'); if(x.tissueBox) items.push('面紙盒'); if(x.banners) items.push('布條'); if(x.boards) items.push('看板');
-            const navUrl = `http://googleusercontent.com/maps.google.com/?q=${x.lat},${x.lng}&travelmode=motorcycle`;
+            let items = []; if(x.tissues) items.push('面紙'); if(x.tissueBox) items.push('面紙盒'); if(x.banners) items.push('布條'); if(x.boards) items.push('看板');
+            
+            // 🌟 修正後的正確導航連結格式
+            const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lng}&travelmode=motorcycle`;
+            
             const chiefClass = (x.chiefEmoji === "👩‍💼") ? "chief-female" : "chief-male";
             let photosHtml = (x.photos || []).map(p => `<a href="${p}" target="_blank"><img src="${p}" class="photo-thumb"></a>`).join('');
 
@@ -123,11 +134,16 @@
 
     window.openEdit = (id) => {
         const x = allData.find(d => d.id === id);
-        document.getElementById('editId').value = id; document.getElementById('editName').value = x.storeName;
-        document.getElementById('editAddr').value = x.address || ''; document.getElementById('editLat').value = x.lat;
-        document.getElementById('editLng').value = x.lng; document.getElementById('editTissues').checked = x.tissues === 'V';
-        document.getElementById('editBox').checked = x.tissueBox === 'V'; document.getElementById('editBanners').checked = x.banners === 'V';
-        document.getElementById('editBoards').checked = x.boards === 'V'; document.getElementById('editNotes').value = x.notes || '';
+        document.getElementById('editId').value = id;
+        document.getElementById('editName').value = x.storeName;
+        document.getElementById('editAddr').value = x.address || '';
+        document.getElementById('editLat').value = x.lat;
+        document.getElementById('editLng').value = x.lng;
+        document.getElementById('editTissues').checked = x.tissues === 'V';
+        document.getElementById('editBox').checked = x.tissueBox === 'V';
+        document.getElementById('editBanners').checked = x.banners === 'V';
+        document.getElementById('editBoards').checked = x.boards === 'V';
+        document.getElementById('editNotes').value = x.notes || '';
         document.getElementById('editModal').style.display='block'; document.getElementById('modalOverlay').style.display='block';
     };
     window.closeModal = () => { document.getElementById('editModal').style.display='none'; document.getElementById('modalOverlay').style.display='none'; };
@@ -143,11 +159,17 @@
         });
         alert("儲存成功"); closeModal(); loadData();
     };
+    
     window.delStore = async (id) => {
         const pw = prompt("請輸入刪除密碼：");
-        if(pw === "1128") { if(confirm("確定要永久刪除這筆店家嗎？")) { await deleteDoc(doc(db, "friendly_stores", id)); alert("已刪除"); loadData(); } }
-        else if (pw !== null) { alert("密碼錯誤！"); }
+        if(pw === "1128") {
+            if(confirm("確定要永久刪除這筆店家嗎？")) {
+                await deleteDoc(doc(db, "friendly_stores", id));
+                alert("已刪除"); loadData();
+            }
+        } else if (pw !== null) { alert("密碼錯誤！"); }
     };
+
     loadData();
 </script>
 </body>
