@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>友善店家佈點地圖 - 互動魔術版</title>
+    <title>友善店家佈點地圖 - 視覺終極版</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
@@ -48,9 +48,9 @@
             transition: all 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
             cursor: pointer; z-index: 1;
         }
-        /* 被選中或輪播到最前面的樣式 */
+        /* 被選中或輪播到最前面的樣式 (多圖回正，獨照歪) */
         .stack-photo.active {
-            transform: scale(1.2) rotate(0deg) !important;
+            transform: scale(1.2) rotate(var(--active-rot)) !important; /* 獨照歪歪核心 */
             z-index: 500 !important;
             box-shadow: 0 10px 25px rgba(0,0,0,0.4);
         }
@@ -62,8 +62,13 @@
         }
         #lightbox img { max-width: 90%; max-height: 90%; border: 5px solid white; border-radius: 5px; }
 
-        /* 📦 物資標籤 */
-        .item-tag { display: inline-block; background: #e8f5e9; color: #2e7d32; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; margin: 2px; border: 1px solid #c8e6c9; }
+        /* 📦 放置物資標籤 (放大鮮明化核心) */
+        .item-tag { 
+            display: inline-block; background: #e8f5e9; color: #1b5e20; 
+            padding: 4px 10px; border-radius: 6px; font-size: 13px; /* 放大 */
+            font-weight: bold; margin: 3px; border: 1px solid #a5d6a7; 
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1); /* 增加質感 */
+        }
 
         @media (max-width: 768px) { body { flex-direction: column; } #map { flex: 1.2; min-height: 40vh; } #sidebar { flex: 1.8; min-height: 50vh; } }
     </style>
@@ -148,22 +153,28 @@
         getInfo: function(v) { return this.data[v] || { district: "未知", name: "待查", phone: "無", gender: "M" }; }
     };
 
-    // 🌟 相片管理邏輯
-    let cycleTimer = null;
-    let resumeTimer = null;
-    let photoIndex = 0;
+    // 🌟 智慧型相片管理邏輯
+    let cycleTimer = null, resumeTimer = null, photoIndex = 0;
 
     window.photoAction = function(img) {
+        // 🌟 核心修改：如果是獨照(parentElement只有1個子元素)，點擊一律直接放大，不進行置頂或暫停邏輯
+        if (img.parentElement.querySelectorAll('.stack-photo').length === 1) {
+            document.getElementById('lightboxImg').src = img.src;
+            document.getElementById('lightbox').style.display = 'flex';
+            return; // 獨照歪歪終止
+        }
+
+        // --- 多照邏輯 ---
         if(img.classList.contains('active')) {
-            // 如果已經是置頂狀態，點擊則放大
+            // 已置頂：點擊則放大
             document.getElementById('lightboxImg').src = img.src;
             document.getElementById('lightbox').style.display = 'flex';
         } else {
-            // 如果不是置頂，點擊則置頂並暫停輪播
+            // 未置頂：點擊置頂並暫停
             stopCycle();
             bringToFront(img);
-            // 5 秒後自動恢復輪播
             clearTimeout(resumeTimer);
+            // 5 秒後恢復
             resumeTimer = setTimeout(() => { startCycleFromContainer(img.parentElement); }, 5000);
         }
     };
@@ -172,6 +183,7 @@
         const container = img.parentElement;
         container.querySelectorAll('.stack-photo').forEach(p => p.classList.remove('active'));
         img.classList.add('active');
+        // 如果是多照，當被選中到最前面時，會回正角度(0deg)；如果是獨照，photoAction核心修改處已跳過此步驟，獨照會繼承歪歪angles。
     }
 
     function stopCycle() { if(cycleTimer) clearInterval(cycleTimer); }
@@ -180,6 +192,8 @@
         stopCycle();
         const photos = Array.from(container.querySelectorAll('.stack-photo'));
         if (photos.length < 2) { if(photos.length==1) bringToFront(photos[0]); return; }
+        // 🌟 多照輪播回正角度為0
+        container.querySelectorAll('.stack-photo').forEach(p => p.style.setProperty('--active-rot', '0deg'));
         cycleTimer = setInterval(() => {
             photoIndex = (photoIndex + 1) % photos.length;
             bringToFront(photos[photoIndex]);
@@ -216,7 +230,8 @@
         try {
             const res = await fetch(`https://api.nlsc.gov.tw/other/TownVillagePointQuery/${lng}/${lat}`);
             const text = await res.text();
-            const villageName = new DOMParser().parseFromString(text, "text/xml").getElementsByTagName("villageName")[0]?.textContent;
+            const xml = new DOMParser().parseFromString(text, "text/xml");
+            const villageName = xml.getElementsByTagName("villageName")[0]?.textContent;
             if (villageName) {
                 const info = ChiefManager.getInfo(villageName);
                 document.getElementById('village').value = villageName;
@@ -255,17 +270,31 @@
                 
                 let galleryHtml = `<div class="photo-stack-container" id="stack-${id}">`;
                 if (d.photos && d.photos.length > 0) {
+                    const count = d.photos.length;
                     d.photos.forEach((url, idx) => {
-                        const rot = (Math.random() * 40) - 20;
-                        const tx = (Math.random() * 30) - 15;
-                        galleryHtml += `<img src="${url}" class="stack-photo" style="transform: rotate(${rot}deg) translate(${tx}px);" onclick="photoAction(this)">`;
+                        // 🌟 生成時的隨機旋轉 (-20 to 20 deg)
+                        const randomRot = (Math.random() * 40) - 20;
+                        
+                        // 🌟 核心邏輯：如果是獨照(parentElement只有1張圖)，bringToFront核心判斷會跳過歪angles回正邏輯，獨照繼承此隨機歪angles；如果是多照，bringToFront核心判斷邏輯會將角度回正到0。
+                        // 我們還需要一個變量來存儲獨照的歪角度
+                        const singleRot = (count === 1) ? randomRot : 0; 
+
+                        // 🌟 天女散花演算法加大：加大 scatter 半徑 (張數越多， scatter 半徑加大)
+                        const angle = (idx / count) * 360;
+                        const scatterRadius = (count === 1) ? 0 : (count > 4 ? 25 : 15); // 加大 scatter 半徑
+                        const tx = Math.cos(angle * Math.PI / 180) * scatterRadius;
+                        const ty = Math.sin(angle * Math.PI / 180) * scatterRadius;
+
+                        galleryHtml += `<img src="${url}" class="stack-photo" 
+                            style="transform: rotate(${randomRot}deg) translate(${tx}px, ${ty}px); z-index: ${idx}; --active-rot: ${singleRot}deg;" 
+                            onclick="photoAction(this)">`;
                     });
                 } else { galleryHtml += `<div style="padding-top:60px; color:#999;">(無照片)</div>`; }
                 galleryHtml += `</div>`;
 
                 let popupHtml = `<div style="text-align:center; min-width:240px;">
-                    <b style="font-size:18px;">${d.storeName}</b><br><small>${d.village}</small><br>
-                    <div style="margin-top:5px;">${items.map(i => `<span class="item-tag">${i}</span>`).join('')}</div>
+                    <b style="font-size:18px; color:#333;">${d.storeName}</b><br><small style="color:#666;">${d.village}</small><br>
+                    <div style="margin-top:7px; border-top:1px solid #eee; padding-top:5px;">${items.map(i => `<span class="item-tag">${i}</span>`).join('')}</div>
                     ${galleryHtml}
                     <a href="${navUrl}" target="_blank" class="nav-link">🛵 導航</a>
                 </div>`;
