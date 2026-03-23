@@ -26,7 +26,6 @@
         .flex-row { display: flex; gap: 8px; margin-top: 5px; }
         .home-btn { background: white; width: 34px; height: 34px; line-height: 34px; text-align: center; cursor: pointer; box-shadow: 0 1px 5px rgba(0,0,0,0.4); border-radius: 4px; font-size: 18px; }
         
-        /* 🛵 彈出視窗按鈕 */
         .popup-btn { display: inline-flex; align-items: center; justify-content: center; padding: 8px 15px; border-radius: 20px; font-weight: bold; font-size: 14px; margin: 10px 4px 0; text-decoration: none !important; cursor: pointer; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .nav-link { background: #1a73e8; color: white !important; }
         .scramble-btn { background: #ffc107; color: #333 !important; }
@@ -41,15 +40,38 @@
         #lightbox { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; justify-content: center; align-items: center; }
         #lightbox img { max-width: 90%; max-height: 90%; border: 5px solid white; border-radius: 5px; }
 
-        .leaflet-popup-content-wrapper { width: 300px !important; }
-        .leaflet-popup-content { width: 280px !important; margin: 15px 10px; }
+        /* 🌟 彩蛋相關樣式 🌟 */
+        #easterEggOverlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.85); z-index: 10000; flex-direction: column;
+            justify-content: center; align-items: center; text-align: center; overflow: hidden;
+        }
+        .easter-text {
+            font-size: 42px; font-weight: 900; color: #ff4081; text-shadow: 2px 2px 0px white, 4px 4px 0px rgba(255, 64, 129, 0.2);
+            animation: bounceIn 0.8s infinite alternate cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+        .easter-sub { font-size: 24px; color: #1a73e8; margin-top: 10px; font-weight: bold; }
+        @keyframes bounceIn {
+            from { transform: scale(0.85); }
+            to { transform: scale(1.1); }
+        }
+        .confetti { position: absolute; font-size: 24px; animation: rain 4s linear infinite; }
+        @keyframes rain {
+            0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+        }
 
-        @media (max-width: 768px) { body { flex-direction: column; } #map { flex: 1; min-height: 35vh; } #sidebar { flex: none; height: auto; max-height: 65vh; min-height: 60px; padding-bottom: 50px; } #sidebar.is-expanded { flex: 3; height: 65vh; } }
+        @media (max-width: 768px) { body { flex-direction: column; } #map { flex: 1; min-height: 35vh; } #sidebar { flex: none; height: auto; max-height: 65vh; min-height: 60px; padding-bottom: 50px; } #sidebar.is-expanded { flex: 3; height: 65vh; } .easter-text { font-size: 32px; } }
     </style>
 </head>
 <body>
 
 <div id="map"></div>
+
+<div id="easterEggOverlay">
+    <div class="easter-text">中和 陳怡君</div>
+    <div class="easter-sub">✨ 幸福怡起拼 ✨</div>
+</div>
 
 <div id="sidebar" class="is-collapsed">
     <div class="mode-toggle">
@@ -70,34 +92,10 @@
             </select>
         </div>
         <div id="editFormArea" style="opacity: 0.5; pointer-events: none;">
-            <div class="form-group">
-                <label><b>1. 店家名稱*</b></label>
-                <input type="text" id="storeName" placeholder="請輸入店名">
-            </div>
-            <div class="form-group">
-                <label><b>2. 位置定位*</b></label>
-                <div class="flex-row">
-                    <button type="button" id="btnGps" class="action-btn">📱 抓手機 GPS</button>
-                    <button type="button" id="btnExif" class="action-btn">🖼️ 抓相片 GPS</button>
-                </div>
-                <div class="flex-row" style="margin-top: 8px;">
-                    <input type="text" id="address" placeholder="輸入地址後按搜尋...">
-                    <button type="button" id="btnAddress" class="action-btn" style="max-width:80px;">🔍 搜尋</button>
-                </div>
-                <span id="geoStatus" style="font-size:13px; font-weight:bold; margin-top:8px; display:block; color:#d9534f;">尚未定位</span>
-            </div>
-            <div class="form-group">
-                <label><b>3. 放置物資</b></label><br>
-                <label style="display:block; margin:5px 0;"><input type="checkbox" id="tissues" value="V"> 放散裝面紙</label>
-                <label style="display:block; margin:5px 0;"><input type="checkbox" id="tissueBox" value="V"> 可放面紙盒</label>
-                <label style="display:block; margin:5px 0;"><input type="checkbox" id="banners" value="V"> 可掛布條</label>
-                <label style="display:block; margin:5px 0;"><input type="checkbox" id="boards" value="V"> 可掛看板</label>
-                <input type="text" id="notes" placeholder="其他備註...">
-            </div>
-            <div class="form-group">
-                <label><b>4. 上傳照片</b></label>
-                <input type="file" id="photos" accept="image/*" multiple>
-            </div>
+            <div class="form-group"><label><b>1. 店家名稱*</b></label><input type="text" id="storeName" placeholder="請輸入店名"></div>
+            <div class="form-group"><label><b>2. 位置定位*</b></label><div class="flex-row"><button type="button" id="btnGps" class="action-btn">📱 抓手機 GPS</button><button type="button" id="btnExif" class="action-btn">🖼️ 抓相片 GPS</button></div><div class="flex-row" style="margin-top: 8px;"><input type="text" id="address" placeholder="輸入地址後按搜尋..."><button type="button" id="btnAddress" class="action-btn" style="max-width:80px;">🔍 搜尋</button></div><span id="geoStatus" style="font-size:13px; font-weight:bold; margin-top:8px; display:block; color:#d9534f;">尚未定位</span></div>
+            <div class="form-group"><label><b>3. 放置物資</b></label><br><label style="display:block; margin:5px 0;"><input type="checkbox" id="tissues" value="V"> 放散裝面紙</label><label style="display:block; margin:5px 0;"><input type="checkbox" id="tissueBox" value="V"> 可放面紙盒</label><label style="display:block; margin:5px 0;"><input type="checkbox" id="banners" value="V"> 可掛布條</label><label style="display:block; margin:5px 0;"><input type="checkbox" id="boards" value="V"> 可掛看板</label><input type="text" id="notes" placeholder="其他備註..."></div>
+            <div class="form-group"><label><b>4. 上傳照片</b></label><input type="file" id="photos" accept="image/*" multiple></div>
             <button id="submitBtn" class="main-btn">🚀 送出資料 (提交)</button>
         </div>
     </div>
@@ -120,34 +118,47 @@
 
     const ChiefManager = { data: {"中原里":{district:"漳和",name:"陳慧書",phone:"0953-869616",gender:"F"},"連和里":{district:"漳和",name:"朱榮凱",phone:"0987-709723",gender:"M"},"連城里":{district:"漳和",name:"林仁凱",phone:"0921-815102",gender:"M"},"力行里":{district:"漳和",name:"周聰明",phone:"0935-922970",gender:"M"},"正行里":{district:"漳和",name:"陳盈君",phone:"0953-409130",gender:"F"},"德行里":{district:"漳和",name:"陳靜宜",phone:"0952-808977",gender:"F"},"枋寮里":{district:"漳和",name:"羅仕滄",phone:"0936-175166",gender:"M"},"漳和里":{district:"漳和",name:"劉建盛",phone:"0933-068655",gender:"M"},"廟美里":{district:"漳和",name:"鄭鈞瑋",phone:"0953-813913",gender:"M"},"福真里":{district:"漳和",name:"蔡昭發",phone:"0932-033585",gender:"M"},"福善里":{district:"漳和",name:"陳愷松",phone:"0936-212589",gender:"M"},"福美里":{district:"漳和",name:"梁廸文",phone:"0933-566024",gender:"M"},"福祥里":{district:"漳和",name:"張昌期",phone:"0937-096775",gender:"M"},"瓦磘里":{district:"漳和",name:"林綺芳",phone:"0910-132806",gender:"F"},"福和里":{district:"漳和",name:"簡健翔",phone:"0981-254789",gender:"M"},"佳和里":{district:"漳和",name:"陳得福",phone:"0933-223414",gender:"M"},"新南里":{district:"漳和",name:"申文博",phone:"0932-569521",gender:"M"},"南山里":{district:"漳和",name:"紀忠和",phone:"0928-582888",gender:"M"},"平河里":{district:"漳和",name:"黃湘雲",phone:"0958-090226",gender:"F"},"信和里":{district:"漳和",name:"許泰銘",phone:"0921-191193",gender:"M"},"仁和里":{district:"漳和",name:"林達",phone:"0988-373812",gender:"M"},"中正里":{district:"漳和",name:"李銀花",phone:"0921-888677",gender:"F"},"建和里":{district:"漳和",name:"江曉佩",phone:"0933-133178",gender:"F"},"中山里":{district:"漳和",name:"江雪嬌",phone:"0936-074706",gender:"F"},"碧河里":{district:"漳和",name:"賴清華",phone:"0917-262469",gender:"M"},"正南里":{district:"南勢",name:"游滿堂",phone:"0922-701258",gender:"M"},"頂南里":{district:"南勢",name:"謝森儒",phone:"0919-266119",gender:"M"},"華新里":{district:"南勢",name:"楊錦煌",phone:"0961-053836",gender:"M"},"東南里":{district:"南勢",name:"李武雄",phone:"0935-936381",gender:"M"},"華南里":{district:"南勢",name:"林平發",phone:"0935-366668",gender:"M"},"忠孝里":{district:"南勢",name:"李柏雲",phone:"0935-146333",gender:"F"},"崇南里":{district:"南勢",name:"林秀貞",phone:"0935-209479",gender:"F"},"興南里":{district:"南勢",name:"呂明志",phone:"0936-231394",gender:"M"},"景南里":{district:"南勢",name:"胡宇辰",phone:"0911-031888",gender:"F"},"景本里":{district:"南勢",name:"張林秀麗",phone:"0937-787801",gender:"F"},"橫路里":{district:"南勢",name:"呂星輝",phone:"0932-336215",gender:"M"},"內南里":{district:"南勢",name:"曾金禧",phone:"0933-735688",gender:"M"},"壽南里":{district:"南勢",name:"呂武雄",phone:"0932-237469",gender:"M"},"福南里":{district:"南勢",name:"邱淑芬",phone:"0920-859710",gender:"F"},"外南里":{district:"南勢",name:"連顯達",phone:"0931-136766",gender:"M"},"中興里":{district:"南勢",name:"游志鴻",phone:"0952-221166",gender:"M"},"吉興里":{district:"南勢",name:"陳成功",phone:"0978-992728",gender:"M"},"復興里":{district:"南勢",name:"尤敏玉",phone:"0975-778062",gender:"F"},"和興里":{district:"南勢",name:"蔡璧如",phone:"0919-228739",gender:"F"},"景平里":{district:"南勢",name:"游一龍",phone:"0988-385007",gender:"M"},"景新里":{district:"南勢",name:"楊惇富",phone:"0905-108507",gender:"M"},"景福里":{district:"南勢",name:"王坤茂",phone:"0932-124959",gender:"M"},"景安里":{district:"南勢",name:"劉浩偉",phone:"0905-108297",gender:"M"},"景文里":{district:"南勢",name:"林東銘",phone:"0928-122889",gender:"M"},"錦和里":{district:"員山",name:"林進明",phone:"0935-255031",gender:"M"},"錦昌里":{district:"員山",name:"邱尾玟",phone:"0927-065332",gender:"F"},"灰隱里":{district:"員山",name:"林鑫宏",phone:"0975-115156",gender:"M"},"積穗里":{district:"員山",name:"陳致廷",phone:"0989-094762",gender:"M"},"民享里":{district:"員山",name:"簡美蓮",phone:"0983-521630",gender:"F"},"員山里":{district:"員山",name:"藍國鐘",phone:"0910-211472",gender:"M"},"嘉穗里":{district:"員山",name:"吳有參",phone:"0938-256666",gender:"M"},"文元里":{district:"員山",name:"吳欣怡",phone:"0952-305508",gender:"F"},"嘉新里":{district:"員山",name:"林后福",phone:"0939-265560",gender:"M"},"民安里":{district:"員山",name:"張金鳳",phone:"0952-374586",gender:"F"},"安穗里":{district:"員山",name:"周靜萱",phone:"0931-285110",gender:"F"},"瑞穗里":{district:"員山",name:"陳美華",phone:"0910-220536",gender:"F"},"明穗里":{district:"員山",name:"何韋翰",phone:"0989-101168",gender:"M"},"清穗里":{district:"員山",name:"王金定",phone:"0935-209055",gender:"M"},"自強里":{district:"員山",name:"張興順",phone:"0928-247696",gender:"M"},"德穗里":{district:"員山",name:"詹文定",phone:"0932-084360",gender:"M"},"民生里":{district:"員山",name:"朱朝鶯",phone:"0912-823668",gender:"F"},"國光里":{district:"員山",name:"蘇俊琦",phone:"0952-632301",gender:"M"},"壽德里":{district:"員山",name:"張宗正",phone:"0926-719215",gender:"M"},"明德里":{district:"員山",name:"羅健容",phone:"0937-428555",gender:"M"},"錦中里":{district:"員山",name:"范榮豐",phone:"0935-579736",gender:"M"},"錦盛里":{district:"員山",name:"林建全",phone:"0919-918959",gender:"M"},"民有里":{district:"員山",name:"謝清炎",phone:"0937-322734",gender:"M"},"員富里":{district:"員山",name:"蔡宗霖",phone:"0937-530014",gender:"M"},"嘉慶里":{district:"員山",name:"吳永華",phone:"0936-450488",gender:"M"},"冠穗里":{district:"員山",name:"郭祥億",phone:"0912-833110",gender:"M"},"國華里":{district:"員山",name:"童宥翔",phone:"0952-814458",gender:"M"},"宜安里":{district:"秀安",name:"陳素貞",phone:"0939-818527",gender:"F"},"安樂里":{district:"秀安",name:"呂福來",phone:"0939-273205",gender:"M"},"安和里":{district:"秀安",name:"吳金",phone:"0989-065366",gender:"M"},"安順里":{district:"秀安",name:"王雪秋",phone:"0933-830269",gender:"F"},"安平里":{district:"秀安",name:"林芳飾",phone:"0978-635621",gender:"M"},"中安里":{district:"秀安",name:"李謙國",phone:"0939-778896",gender:"M"},"泰安里":{district:"秀安",name:"林美惠",phone:"0987-792713",gender:"F"},"秀山里":{district:"秀安",name:"林秋宇",phone:"0935-699363",gender:"M"},"秀成里":{district:"秀安",name:"吳金松",phone:"0923-299399",gender:"M"},"秀義里":{district:"秀安",name:"張文亮",phone:"0936-119594",gender:"M"},"秀福里":{district:"秀安",name:"林江西",phone:"0933-891482",gender:"M"},"秀景里":{district:"秀安",name:"李淙河",phone:"0933-222617",gender:"M"},"秀明里":{district:"秀安",name:"施義男",phone:"0935-515373",gender:"M"},"秀峰里":{district:"秀安",name:"周存炎",phone:"0988-950897",gender:"M"},"秀士里":{district:"秀安",name:"洪易松",phone:"0958-333187",gender:"M"},"秀水里":{district:"秀安",name:"陳炳男",phone:"0912-034916",gender:"M"},"秀仁里":{district:"秀安",name:"陳慶章",phone:"0918-565598",gender:"M"} }, getInfo: function(v){ return this.data[v]||{district:"未知",name:"待查",phone:"無",gender:"M"}; } };
 
-    let cycleTimer = null, resumeTimer = null, currentIdx = 0, markers = {};
+    let cycleTimer = null, resumeTimer = null, currentIdx = 0, markers = {}, scrambleCount = 0;
 
-    // 🌟 相片主要功能：一律改為點擊放大
-    window.photoAction = function(img) {
-        document.getElementById('lightboxImg').src = img.src;
-        document.getElementById('lightbox').style.display = 'flex';
-    };
+    // 🌟 彩蛋觸發器
+    function triggerEasterEgg() {
+        const overlay = document.getElementById('easterEggOverlay');
+        overlay.style.display = 'flex';
+        // 撒愛心碎片
+        for(let i=0; i<30; i++) {
+            const c = document.createElement('div');
+            c.className = 'confetti';
+            c.innerHTML = ['❤️','💖','✨','⭐','🌸'][Math.floor(Math.random()*5)];
+            c.style.left = Math.random() * 100 + 'vw';
+            c.style.animationDelay = Math.random() * 2 + 's';
+            overlay.appendChild(c);
+        }
+        setTimeout(() => { 
+            overlay.style.display = 'none'; 
+            overlay.querySelectorAll('.confetti').forEach(el => el.remove());
+            scrambleCount = 0; 
+        }, 5000);
+    }
 
-    // 🌟 按鈕功能：弄亂相片
+    window.photoAction = function(img) { document.getElementById('lightboxImg').src = img.src; document.getElementById('lightbox').style.display = 'flex'; };
+
     window.scramblePhotos = function(storeId) {
+        // 累計次數
+        scrambleCount++;
+        if(scrambleCount === 10) triggerEasterEgg();
+
         stopCycle(); 
         const container = document.getElementById(`stack-${storeId}`);
         const photos = container.querySelectorAll('.stack-photo');
         photos.forEach((p) => {
             p.classList.remove('active');
-            const rot = (Math.random() * 180) - 90;
-            const tx = (Math.random() * 160) - 80;
-            const ty = (Math.random() * 160) - 80;
-            const scale = 0.8 + (Math.random() * 0.5);
+            const rot = (Math.random() * 180) - 90, tx = (Math.random() * 160) - 80, ty = (Math.random() * 160) - 80, scale = 0.8 + (Math.random() * 0.5);
             p.style.transform = `rotate(${rot}deg) translate(${tx}px, ${ty}px) scale(${scale})`;
             p.style.zIndex = Math.floor(Math.random() * 100);
         });
         clearTimeout(resumeTimer);
         resumeTimer = setTimeout(() => {
-            photos.forEach((p) => {
-                p.style.transform = `rotate(${p.dataset.tidyRot}deg) translate(${p.dataset.tidyTx}px, ${p.dataset.tidyTy}px) scale(1)`;
-                p.style.zIndex = p.dataset.tidyZ;
-            });
+            photos.forEach((p) => { p.style.transform = `rotate(${p.dataset.tidyRot}deg) translate(${p.dataset.tidyTx}px, ${p.dataset.tidyTy}px) scale(1)`; p.style.zIndex = p.dataset.tidyZ; });
             startCycle(container);
         }, 5000);
     };
@@ -160,7 +171,7 @@
         cycleTimer = setInterval(() => { currentIdx = (currentIdx + 1) % photos.length; bringToFront(photos[currentIdx]); }, 1800);
     }
 
-    // 地圖邏輯
+    // 地圖與基本邏輯
     var map = L.map('map', { zoomControl: false }).setView([24.993, 121.496], 13.5); 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© CARTO' }).addTo(map);
     L.control.zoom({ position: 'topleft' }).addTo(map);
@@ -206,11 +217,8 @@
                 let galleryHtml = `<div class="photo-stack-container" id="stack-${id}">`;
                 if (d.photos && d.photos.length > 0) {
                     d.photos.forEach((url, idx) => {
-                        const rot = (Math.random() * 40) - 20;
-                        const angle = (idx / d.photos.length) * 360;
-                        const scatterRadius = (d.photos.length > 4 ? 45 : 30);
-                        const tx = Math.cos(angle * Math.PI / 180) * scatterRadius;
-                        const ty = Math.sin(angle * Math.PI / 180) * scatterRadius;
+                        const rot = (Math.random() * 40) - 20, angle = (idx / d.photos.length) * 360, scatter = (d.photos.length > 4 ? 45 : 30);
+                        const tx = Math.cos(angle * Math.PI / 180) * scatter, ty = Math.sin(angle * Math.PI / 180) * scatter;
                         galleryHtml += `<img src="${url}" class="stack-photo" data-tidy-rot="${rot}" data-tidy-tx="${tx}" data-tidy-ty="${ty}" data-tidy-z="${idx}" style="transform: rotate(${rot}deg) translate(${tx}px, ${ty}px); z-index: ${idx}; --active-rot: ${(d.photos.length==1?rot:0)}deg;" onclick="photoAction(this)">`;
                     });
                 } else { galleryHtml += `<div style="padding-top:60px; color:#999;">(無照片)</div>`; }
