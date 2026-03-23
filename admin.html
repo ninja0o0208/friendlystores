@@ -7,37 +7,29 @@
     <style>
         body { font-family: '微軟正黑體', sans-serif; padding: 15px; background: #f4f7f6; margin: 0; }
         .header-box { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        /* 標題與數量靠左貼齊 */
         .header-title { display: flex; align-items: baseline; gap: 15px; }
         .filter-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #eee; font-size: 14px; }
         select, input { padding: 8px; border-radius: 6px; border: 1px solid #ccc; }
         .table-container { background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow-x: auto; }
         
-        /* 表格設定：維持 100% 寬度，但讓內容緊湊 */
         table { width: 100%; border-collapse: collapse; min-width: 850px; }
         th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; vertical-align: middle; }
         th { background: #007bff; color: white; position: sticky; top: 0; z-index: 10; white-space: nowrap; }
         
         .tag { display: inline-flex; align-items: center; justify-content: center; background: #28a745; color: white; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; margin: 2px; }
         
-        /* 按鈕基本樣式：加入 white-space: nowrap 強制不換行 */
         .btn-link { display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; text-decoration: none; font-weight: bold; color: white !important; cursor: pointer; border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.1); white-space: nowrap; }
         
-        /* 🌍 定位按鈕 (小巧貼緊標籤) */
         .loc-btn { background: #0ea5e9; padding: 2px 6px; font-size: 11px; border-radius: 6px; } 
-        
-        /* ✏️ 🗑️ 修改與刪除按鈕 (窄版) */
         .action-btn { padding: 5px 12px; font-size: 12px; }
         .edit-btn { background: #ffc107; color: #333 !important; } 
         .del-btn { background: #dc3545; }
         
-        /* 右側操作區：向左對齊，保持緊湊 */
         .action-column { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; width: max-content; }
         
         .chief-tag { display: inline-block; padding: 4px 12px; border-radius: 20px; border: 1px solid #ddd; font-weight: bold; font-size: 13px; margin-top: 4px; white-space: nowrap; }
         .chief-female { background-color: #ffeef2; color: #d63384; } .chief-male { background-color: #f0f7ff; color: #007bff; }
         
-        /* 照片樣式設定：自然往右排，超過自動換行 */
         .photo-flow { display: flex; flex-wrap: wrap; gap: 4px; max-width: 140px; }
         .photo-thumb { width: 42px; height: 42px; border-radius: 4px; object-fit: cover; border: 1px solid #eee; margin: 0; }
         
@@ -163,7 +155,7 @@
             
             list.innerHTML += `<tr>
                 <td>
-                    <div style="display: flex; align-items: flex-start; gap: 6px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 6px;">
                         <b style="font-size: 16px; color: #0056b3; word-break: break-all;">${x.storeName}</b>
                         <a href="index.html?id=${x.id}" class="btn-link loc-btn" style="margin:0; flex-shrink: 0;">🌍 定位</a>
                     </div>
