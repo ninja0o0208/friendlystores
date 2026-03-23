@@ -35,8 +35,6 @@
 
         .item-tag-container { margin: 10px 0; padding: 8px; background: #f0fdf4; border-radius: 8px; border: 1px solid #dcfce7; position: relative; z-index: 1001; }
         .item-tag { display: inline-block; background: #22c55e; color: white; padding: 4px 12px; border-radius: 6px; font-size: 14px; font-weight: bold; margin: 3px; }
-
-        /* 🛵 地址專用樣式 */
         .popup-addr { font-size: 12px; color: #666; margin-top: 2px; display: block; line-height: 1.2; }
 
         .photo-stack-container { position: relative; width: 100%; height: 180px; margin: 35px auto 15px; perspective: 1000px; z-index: 100; }
@@ -53,9 +51,6 @@
         @keyframes bounceIn { from { transform: scale(0.85); } to { transform: scale(1.1); } }
         .confetti { position: absolute; font-size: 30px; animation: rain 4s linear infinite; pointer-events: none; }
         @keyframes rain { 0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; } 100% { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
-
-        /* Leaflet Popup 寬度控制 */
-        .leaflet-popup-content-wrapper { transition: width 0.3s; }
 
         @media (max-width: 768px) { body { flex-direction: column; } #map { flex: 1; min-height: 35vh; } #sidebar { flex: none; height: auto; max-height: 65vh; min-height: 60px; padding-bottom: 50px; } #sidebar.is-expanded { flex: 3; height: 65vh; } .easter-text { font-size: 36px; } }
     </style>
@@ -79,14 +74,24 @@
         <span class="collapse-icon">🔽</span>
     </div>
     <div id="collapsibleContent">
-        <div class="form-group" style="background:#fff3cd;">
-            <label><b>🔍 地圖篩選範圍</b></label>
-            <select id="mapLayerFilter">
+        <div class="form-group" style="background:#fff3cd; border: 2px solid #ffeeba;">
+            <label><b>🔍 地圖篩選 (分區與時間)</b></label>
+            <div class="flex-row">
+                <select id="mapDistFilter" style="margin-bottom: 5px;">
+                    <option value="all">所有分區</option>
+                    <option value="漳和">漳和分區</option>
+                    <option value="員山">員山分區</option>
+                    <option value="南勢">南勢分區</option>
+                    <option value="秀安">秀安分區</option>
+                </select>
+            </div>
+            <select id="mapTimeFilter">
+                <option value="all">顯示所有時間</option>
                 <option value="today">僅顯示今天新增</option>
                 <option value="month">顯示本月新增</option>
-                <option value="all" selected>顯示所有地點</option>
             </select>
         </div>
+
         <div id="editFormArea" style="opacity: 0.5; pointer-events: none;">
             <div class="form-group"><label><b>1. 店家名稱*</b></label><input type="text" id="storeName" placeholder="請輸入店名"></div>
             <div class="form-group">
@@ -95,7 +100,7 @@
                     <button type="button" id="btnGps" class="action-btn">📱 手機定位</button>
                     <button type="button" id="btnExif" class="action-btn">🖼️ 相片定位</button>
                 </div>
-                <input type="text" id="address" placeholder="輸入完地址，點擊旁邊即自動定位" style="margin-top:10px;">
+                <input type="text" id="address" placeholder="輸入地址後，點旁邊自動定位" style="margin-top:10px;">
                 <span id="geoStatus" style="font-size:12px; font-weight:bold; margin-top:8px; display:block; color:#d9534f;">尚未定位</span>
             </div>
             <div class="form-group">
@@ -202,16 +207,29 @@
 
     async function loadExistingStores() {
         map.eachLayer(l => { if(l instanceof L.Marker && l !== marker) map.removeLayer(l); });
-        const filter = document.getElementById('mapLayerFilter').value;
+        const timeFilter = document.getElementById('mapTimeFilter').value;
+        const distFilter = document.getElementById('mapDistFilter').value;
+        
+        // 🌟 分區定位座標
+        const distCoords = { "漳和": [24.994, 121.503], "員山": [25.002, 121.485], "南勢": [24.985, 121.505], "秀安": [25.001, 121.515] };
+        if(distFilter !== 'all' && distCoords[distFilter]) {
+            map.setView(distCoords[distFilter], 15);
+        }
+
         const snap = await getDocs(query(collection(db, "friendly_stores"), orderBy("createdAt", "desc")));
         snap.forEach(docSnap => {
             const d = docSnap.data(), id = docSnap.id, jsDate = d.createdAt?.toDate() || new Date();
-            let show = (filter === 'all');
             const now = new Date();
-            if(filter === 'today' && jsDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate())) show = true;
-            if(filter === 'month' && jsDate >= new Date(now.getFullYear(), now.getMonth(), 1)) show = true;
+            
+            // 時間篩選
+            let timeMatch = (timeFilter === 'all');
+            if(timeFilter === 'today' && jsDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate())) timeMatch = true;
+            if(timeFilter === 'month' && jsDate >= new Date(now.getFullYear(), now.getMonth(), 1)) timeMatch = true;
 
-            if (show && d.lat && d.lng) {
+            // 分區篩選
+            let distMatch = (distFilter === 'all' || d.district === distFilter);
+
+            if (timeMatch && distMatch && d.lat && d.lng) {
                 const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}&travelmode=motorcycle`;
                 let items = []; if(d.tissues) items.push('可放散面紙'); if(d.tissueBox) items.push('可放面紙盒'); if(d.banners) items.push('可掛布條'); if(d.boards) items.push('可掛看板');
                 let itemsHtml = items.length > 0 ? `<div class="item-tag-container">${items.map(i => `<span class="item-tag">${i}</span>`).join('')}</div>` : '';
@@ -226,22 +244,11 @@
                     galleryHtml += `</div>`;
                 }
 
-                // 🌟 地址或 GPS
                 const displayLocation = d.address ? d.address : `${d.lat.toFixed(5)}, ${d.lng.toFixed(5)}`;
                 const scrambleBtnHtml = hasPhotos ? `<button class="popup-btn scramble-btn" onclick="scramblePhotos('${id}')">🌀 弄亂</button>` : '';
-                const popupWidth = hasPhotos ? 280 : 200; // 沒照片就縮窄
+                const popupWidth = hasPhotos ? 280 : 200;
 
-                let popupHtml = `<div style="text-align:center; min-width:${popupWidth}px;">
-                    <b style="font-size:18px; color:#333;">${d.storeName}</b>
-                    <span class="popup-addr">${displayLocation}</span>
-                    ${itemsHtml}
-                    ${galleryHtml}
-                    <div style="margin-top:10px; display:flex; justify-content:center; gap:5px;">
-                        <a href="${navUrl}" target="_blank" class="popup-btn nav-link">🛵 導航</a>
-                        ${scrambleBtnHtml}
-                    </div>
-                </div>`;
-                
+                let popupHtml = `<div style="text-align:center; min-width:${popupWidth}px;"><b style="font-size:18px; color:#333;">${d.storeName}</b><span class="popup-addr">${displayLocation}</span>${itemsHtml}${galleryHtml}<div style="margin-top:10px; display:flex; justify-content:center; gap:5px;"><a href="${navUrl}" target="_blank" class="popup-btn nav-link">🛵 導航</a>${scrambleBtnHtml}</div></div>`;
                 const m = L.marker([d.lat, d.lng]).addTo(map).bindPopup(popupHtml);
                 m.on('popupopen', () => { if(hasPhotos) { currentIdx = 0; startCycle(document.getElementById(`stack-${id}`)); } });
                 m.on('popupclose', () => { stopCycle(); clearTimeout(resumeTimer); });
@@ -250,73 +257,49 @@
         });
     }
 
-    // 🌟 自動定位功能 (地址輸入完離開格子時觸發)
+    // 地址離開焦點自動定位
     document.getElementById('address').onblur = async function() {
-        let addr = this.value;
-        if(!addr || addr.length < 3) return;
+        let addr = this.value; if(!addr || addr.length < 3) return;
         if(!addr.includes("區")) addr = "新北市中和區" + addr;
-        const geoStatus = document.getElementById('geoStatus');
-        geoStatus.innerText = "🔍 自動定位中...";
+        const geoStatus = document.getElementById('geoStatus'); geoStatus.innerText = "🔍 自動定位中...";
         try {
             const res = await fetch(GAS_API_URL + "?address=" + encodeURIComponent(addr));
             const data = await res.json();
-            if(data.status==='OK') {
-                updateLocation(data.results[0].geometry.location.lat, data.results[0].geometry.location.lng);
-            } else {
-                geoStatus.innerText = "❌ 找不到位置";
-            }
+            if(data.status==='OK') updateLocation(data.results[0].geometry.location.lat, data.results[0].geometry.location.lng);
+            else geoStatus.innerText = "❌ 找不到位置";
         } catch(e) { geoStatus.innerText = "❌ 定位失敗"; }
     };
 
     function updateLocation(lat, lng) {
         if (marker) map.removeLayer(marker);
         marker = L.marker([lat, lng], {draggable: true, icon: L.icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png', shadowSize: [41, 41], iconSize: [25, 41], iconAnchor: [12, 41]})}).addTo(map);
-        map.setView([lat, lng], 17);
-        document.getElementById('lat').value = lat; document.getElementById('lng').value = lng;
+        map.setView([lat, lng], 17); document.getElementById('lat').value = lat; document.getElementById('lng').value = lng;
         autoDetectVillage(lat, lng);
         marker.on('dragend', function(){ let p = marker.getLatLng(); document.getElementById('lat').value = p.lat; document.getElementById('lng').value = p.lng; autoDetectVillage(p.lat, p.lng); });
     }
 
     async function autoDetectVillage(lat, lng) {
-        const geoStatus = document.getElementById('geoStatus');
         try {
             const res = await fetch(`https://api.nlsc.gov.tw/other/TownVillagePointQuery/${lng}/${lat}`);
             const villageName = new DOMParser().parseFromString(await res.text(), "text/xml").getElementsByTagName("villageName")[0]?.textContent;
             if (villageName) {
-                const info = ChiefManager.getInfo(villageName);
+                const info = (ChiefManager.data && ChiefManager.data[villageName]) ? ChiefManager.data[villageName] : { district: "未知" };
                 document.getElementById('village').value = villageName; document.getElementById('district').value = info.district;
-                document.getElementById('chiefName').value = info.name; document.getElementById('chiefPhone').value = info.phone; document.getElementById('chiefEmoji').value = info.gender === "F" ? "👩‍💼" : "👨";
-                geoStatus.innerHTML = `✅ ${info.district}區-${villageName}`;
-                geoStatus.style.color = "#28a745";
+                document.getElementById('geoStatus').innerHTML = `✅ ${info.district}區-${villageName}`;
+                document.getElementById('geoStatus').style.color = "#28a745";
             }
         } catch (e) { }
     }
 
     document.getElementById('btnGps').onclick = () => navigator.geolocation.getCurrentPosition(p => updateLocation(p.coords.latitude, p.coords.longitude));
-    
-    const compress = (file) => new Promise(res => {
-        const reader = new FileReader(); reader.readAsDataURL(file);
-        reader.onload = e => {
-            const img = new Image(); img.src = e.target.result;
-            img.onload = () => {
-                const cvs = document.createElement('canvas'); const scale = Math.min(1, 1024 / img.width);
-                cvs.width = img.width * scale; cvs.height = img.height * scale;
-                cvs.getContext('2d').drawImage(img, 0, 0, cvs.width, cvs.height); res(cvs.toDataURL('image/jpeg', 0.8));
-            };
-        };
-    });
+    const compress = (file) => new Promise(res => { const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = e => { const img = new Image(); img.src = e.target.result; img.onload = () => { const cvs = document.createElement('canvas'); const scale = Math.min(1, 1024/img.width); cvs.width = img.width*scale; cvs.height = img.height*scale; cvs.getContext('2d').drawImage(img,0,0,cvs.width,cvs.height); res(cvs.toDataURL('image/jpeg',0.8)); }; }; });
 
-    // 🚀 送出並自動清空
     document.getElementById('submitBtn').onclick = async () => {
-        const btn = document.getElementById('submitBtn');
-        const storeName = document.getElementById('storeName').value;
-        const lat = document.getElementById('lat').value;
+        const btn = document.getElementById('submitBtn'), storeName = document.getElementById('storeName').value, lat = document.getElementById('lat').value;
         if(!storeName || !lat) return alert("❌ 請填寫店名與定位！");
-
         btn.disabled = true; btn.innerText = "🚀 正在儲存...";
         try {
-            let urls = [];
-            const files = document.getElementById('photos').files;
+            let urls = []; const files = document.getElementById('photos').files;
             if(files.length > 0) {
                 let pArr = []; for(let i=0; i<Math.min(files.length, 8); i++) pArr.push(await compress(files[i]));
                 const res = await fetch(GAS_API_URL, { method:'POST', body: JSON.stringify({ storeName, photos: pArr }) });
@@ -326,30 +309,21 @@
                 storeName, address: document.getElementById('address').value,
                 lat: parseFloat(lat), lng: parseFloat(document.getElementById('lng').value),
                 district: document.getElementById('district').value, village: document.getElementById('village').value,
-                chiefName: document.getElementById('chiefName').value, chiefPhone: document.getElementById('chiefPhone').value, chiefEmoji: document.getElementById('chiefEmoji').value,
                 tissues: document.getElementById('tissues').checked ? "V" : "", tissueBox: document.getElementById('tissueBox').checked ? "V" : "",
                 banners: document.getElementById('banners').checked ? "V" : "", boards: document.getElementById('boards').checked ? "V" : "",
                 notes: document.getElementById('notes').value, photos: urls, createdAt: serverTimestamp()
             });
-            alert("✅ 新增成功！欄位已清空。");
-            // 🌟 自動清空欄位
-            document.getElementById('storeName').value = "";
-            document.getElementById('address').value = "";
-            document.getElementById('notes').value = "";
-            document.getElementById('photos').value = "";
-            document.getElementById('tissues').checked = false;
-            document.getElementById('tissueBox').checked = false;
-            document.getElementById('banners').checked = false;
-            document.getElementById('boards').checked = false;
-            document.getElementById('geoStatus').innerText = "尚未定位";
-            document.getElementById('geoStatus').style.color = "#d9534f";
-            if(marker) map.removeLayer(marker);
-            loadExistingStores();
+            alert("✅ 新增成功！");
+            document.getElementById('storeName').value = ""; document.getElementById('address').value = ""; document.getElementById('notes').value = ""; document.getElementById('photos').value = "";
+            document.querySelectorAll('input[type=checkbox]').forEach(el => el.checked = false);
+            document.getElementById('geoStatus').innerText = "尚未定位"; document.getElementById('geoStatus').style.color = "#d9534f";
+            if(marker) map.removeLayer(marker); loadExistingStores();
         } catch(e) { alert("❌ 錯誤: " + e.message); }
         btn.disabled = false; btn.innerText = "🚀 送出資料";
     };
 
-    document.getElementById('mapLayerFilter').onchange = loadExistingStores;
+    document.getElementById('mapTimeFilter').onchange = loadExistingStores;
+    document.getElementById('mapDistFilter').onchange = loadExistingStores;
     loadExistingStores();
 </script>
 </body>
