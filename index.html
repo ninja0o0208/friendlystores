@@ -3,56 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>友善店家佈點地圖 - 完整資訊版</title>
+    <title>友善店家佈點地圖 - 專業導航版</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
     <style>
         body { margin: 0; padding: 0; font-family: '微軟正黑體', sans-serif; display: flex; height: 100vh; flex-direction: row; }
-        #map { flex: 2; height: 100%; }
-        #sidebar { flex: 1; padding: 20px; overflow-y: auto; background: #fff; box-shadow: -2px 0 5px rgba(0,0,0,0.1); z-index: 1000; min-width: 350px; }
-        .form-group { margin-bottom: 15px; background: #f8f9fa; padding: 12px; border-radius: 10px; border: 1px solid #eee; }
+        #map { flex: 2; height: 100%; z-index: 1; }
+        #sidebar { flex: 1; padding: 15px; overflow-y: auto; background: #fff; box-shadow: -2px 0 5px rgba(0,0,0,0.1); z-index: 1000; min-width: 320px; }
+        .form-group { margin-bottom: 12px; background: #f8f9fa; padding: 10px; border-radius: 10px; border: 1px solid #eee; }
         input[type="text"] { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; }
-        .main-btn { padding: 14px; background: #28a745; color: white; border: none; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; border-radius: 8px; margin-top: 10px; }
+        
+        /* 模式切換器開關 */
+        .mode-toggle { display: flex; background: #eee; border-radius: 25px; padding: 4px; margin-bottom: 15px; position: relative; }
+        .mode-btn { flex: 1; text-align: center; padding: 8px; cursor: pointer; z-index: 2; font-weight: bold; font-size: 14px; transition: 0.3s; }
+        .mode-active { background: #1a73e8; color: white; border-radius: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        
+        .main-btn { padding: 14px; background: #28a745; color: white; border: none; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; border-radius: 8px; margin-top: 5px; }
         .action-btn { padding: 8px 10px; background: #1a73e8; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; flex: 1; }
         .flex-row { display: flex; gap: 8px; margin-top: 5px; }
         
-        /* 🛵 導航與功能按鈕樣式 */
-        .btn-row { display: flex; justify-content: center; gap: 10px; margin-top: 15px; }
-        .nav-link, .cycle-btn { 
+        /* 🏠 回到首頁按鈕樣式 */
+        .home-btn { background: white; width: 34px; height: 34px; line-height: 34px; text-align: center; cursor: pointer; box-shadow: 0 1px 5px rgba(0,0,0,0.4); border-radius: 4px; font-size: 18px; color: #333; }
+
+        /* 🛵 導航按鈕樣式 (手機版加強) */
+        .nav-link { 
             display: inline-flex; align-items: center; justify-content: center;
-            padding: 8px 18px; border-radius: 20px; font-weight: bold; font-size: 13px;
-            text-decoration: none !important; cursor: pointer; border: none;
+            padding: 10px 30px; background: #1a73e8; color: white !important; 
+            text-decoration: none !important; border-radius: 25px; 
+            font-weight: bold; font-size: 15px; margin-top: 10px;
+            box-shadow: 0 4px 6px rgba(26, 115, 232, 0.3);
         }
-        .nav-link { background: #1a73e8; color: white !important; }
-        .cycle-btn { background: #6c757d; color: white; }
 
         /* 📦 彈出視窗物資標籤 */
-        .item-tag {
-            display: inline-block; background: #e8f5e9; color: #2e7d32;
-            padding: 2px 8px; border-radius: 4px; font-size: 11px;
-            font-weight: bold; margin: 2px; border: 1px solid #c8e6c9;
-        }
+        .item-tag { display: inline-block; background: #e8f5e9; color: #2e7d32; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; margin: 2px; border: 1px solid #c8e6c9; }
 
-        /* 🌟 天女散花相片堆疊核心 CSS */
+        /* 🌟 天女散花相片堆疊 (手機優化版) */
         .photo-stack-container {
-            position: relative; width: 240px; height: 210px;
-            margin: 15px auto 5px; perspective: 1000px;
+            position: relative; width: 100%; height: 160px; /* 降低高度避免擋住導航 */
+            margin: 10px auto 5px; perspective: 800px; overflow: visible;
         }
         .stack-photo {
-            position: absolute; width: 130px; height: 130px;
-            object-fit: cover; border: 4px solid white;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            cursor: pointer; transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
-            left: 55px; top: 10px; z-index: 1;
+            position: absolute; width: 110px; height: 110px;
+            object-fit: cover; border: 3px solid white;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+            left: 50%; margin-left: -55px; /* 確保絕對置中 */
+            transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+            z-index: 1;
         }
-        .stack-photo.active {
-            transform: scale(1.15) rotate(0deg) !important;
-            z-index: 1000 !important;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-        }
+        .stack-photo.active { transform: scale(1.15) rotate(0deg) !important; z-index: 100 !important; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
 
-        @media (max-width: 768px) { body { flex-direction: column; } #map { flex: 1; min-height: 40vh; } #sidebar { flex: 1; min-height: 60vh; } }
+        /* Leaflet Popup 限制高度 */
+        .leaflet-popup-content { max-height: 400px; overflow-y: auto; padding-right: 5px; }
+
+        @media (max-width: 768px) { body { flex-direction: column; } #map { flex: 1.2; min-height: 40vh; } #sidebar { flex: 1.8; min-height: 50vh; } }
     </style>
 </head>
 <body>
@@ -60,48 +64,56 @@
 <div id="map"></div>
 
 <div id="sidebar">
-    <h2 style="margin-top: 0; color:#333;">📍 新增友善店家</h2>
-    <div class="form-group" style="background:#fff3cd; border-color:#ffeeba;">
-        <label><b>🔍 地圖顯示範圍</b></label>
-        <select id="mapLayerFilter" style="width:100%; padding:10px; margin-top:5px; border-radius:6px; border:1px solid #ddd;">
-            <option value="today">僅顯示今天新增 (預設)</option>
+    <div class="mode-toggle">
+        <div id="modeView" class="mode-btn mode-active" onclick="setInteractionMode('view')">🔒 鎖定地圖</div>
+        <div id="modeEdit" class="mode-btn" onclick="setInteractionMode('edit')">➕ 新增地點</div>
+    </div>
+
+    <div class="form-group" style="background:#fff3cd;">
+        <label><b>🔍 地圖篩選</b></label>
+        <select id="mapLayerFilter" style="width:100%; padding:8px; margin-top:5px; border-radius:6px; border:1px solid #ddd;">
+            <option value="today">僅顯示今天新增</option>
             <option value="month">顯示本月新增</option>
-            <option value="all">顯示所有地點</option>
+            <option value="all" selected>顯示所有地點</option>
         </select>
     </div>
-    <div class="form-group">
-        <label><b>1. 店家資訊</b></label>
-        <input type="text" id="storeName" placeholder="店名*" required>
-    </div>
-    <div class="form-group">
-        <label><b>2. 位置定位*</b></label>
-        <div class="flex-row">
-            <button type="button" id="btnGps" class="action-btn">📱 抓手機 GPS</button>
-            <button type="button" id="btnExif" class="action-btn">🖼️ 抓照片 GPS</button>
+
+    <div id="editFormArea" style="opacity: 0.5; pointer-events: none;">
+        <div class="form-group">
+            <label><b>1. 店家資訊</b></label>
+            <input type="text" id="storeName" placeholder="店名*" required>
         </div>
-        <div class="flex-row" style="margin-top: 8px;">
-            <input type="text" id="address" placeholder="或輸入地址...">
-            <button type="button" id="btnAddress" class="action-btn" style="max-width:80px;">🔍 搜尋</button>
+        <div class="form-group">
+            <label><b>2. 位置定位*</b></label>
+            <div class="flex-row">
+                <button type="button" id="btnGps" class="action-btn">📱 手機 GPS</button>
+                <button type="button" id="btnExif" class="action-btn">🖼️ 照片 GPS</button>
+            </div>
+            <div class="flex-row" style="margin-top: 8px;">
+                <input type="text" id="address" placeholder="輸入地址...">
+                <button type="button" id="btnAddress" class="action-btn" style="max-width:80px;">🔍 搜尋</button>
+            </div>
+            <span id="geoStatus" style="font-size:12px; font-weight:bold; margin-top:8px; display:block; color:#d9534f;">尚未定位</span>
         </div>
-        <span id="geoStatus" style="font-size:13px; font-weight:bold; margin-top:8px; display:block; color:#d9534f;">尚未定位</span>
-        <input type="hidden" id="lat"><input type="hidden" id="lng">
-        <input type="hidden" id="district"><input type="hidden" id="village">
-        <input type="hidden" id="chiefName"><input type="hidden" id="chiefPhone"><input type="hidden" id="chiefEmoji">
+        <div class="form-group">
+            <label><b>3. 放置物資 (可複選)</b></label><br>
+            <label><input type="checkbox" id="tissues" value="V"> 放散裝面紙</label><br>
+            <label><input type="checkbox" id="tissueBox" value="V"> 可放面紙盒</label><br>
+            <label><input type="checkbox" id="banners" value="V"> 可掛布條</label><br>
+            <label><input type="checkbox" id="boards" value="V"> 可掛看板</label><br>
+            <input type="text" id="notes" placeholder="備註 (其他物資)">
+        </div>
+        <div class="form-group">
+            <label><b>4. 上傳現場照片 (可多張)</b></label>
+            <input type="file" id="photos" accept="image/*" multiple>
+        </div>
+        <button id="submitBtn" class="main-btn">🚀 送出資料</button>
     </div>
-    <div class="form-group">
-        <label><b>3. 放置物資 (可複選)</b></label><br>
-        <label><input type="checkbox" id="tissues" value="V"> 放散裝面紙</label><br>
-        <label><input type="checkbox" id="tissueBox" value="V"> 可放面紙盒</label><br>
-        <label><input type="checkbox" id="banners" value="V"> 可掛布條</label><br>
-        <label><input type="checkbox" id="boards" value="V"> 可掛看板</label><br>
-        <input type="text" id="notes" placeholder="備註 (其他物資)">
-    </div>
-    <div class="form-group">
-        <label><b>4. 上傳現場照片 (可多張)</b></label>
-        <input type="file" id="photos" accept="image/*" multiple>
-    </div>
-    <button id="submitBtn" class="main-btn">🚀 送出資料</button>
-    <div id="status" style="margin-top:10px; text-align:center; font-weight:bold;"></div>
+    <div id="status" style="margin-top:10px; text-align:center; font-weight:bold; font-size:14px;"></div>
+    
+    <input type="hidden" id="lat"><input type="hidden" id="lng">
+    <input type="hidden" id="district"><input type="hidden" id="village">
+    <input type="hidden" id="chiefName"><input type="hidden" id="chiefPhone"><input type="hidden" id="chiefEmoji">
 </div>
 
 <script type="module">
@@ -127,22 +139,52 @@
         getInfo: function(v) { return this.data[v] || { district: "未知", name: "待查", phone: "無", gender: "M" }; }
     };
 
-    // 🌟 全域置頂函數
+    // 🌟 全域置頂與自動輪播邏輯
     let maxZ = 1000;
+    let cycleInterval = null;
     window.bringToFront = (img) => { maxZ++; img.style.zIndex = maxZ; img.classList.add('active'); };
-    window.startCycling = (btn) => {
-        const photos = Array.from(btn.closest('div').querySelector('.photo-stack-container').querySelectorAll('.stack-photo'));
+    
+    // 當 Popup 開啟時觸發
+    function initAutoCycle(containerId) {
+        if(cycleInterval) clearInterval(cycleInterval);
+        const container = document.getElementById(containerId);
+        const photos = Array.from(container.querySelectorAll('.stack-photo'));
         if (photos.length < 2) return;
-        let i = 0; btn.innerText = "⏳ 輪播中..."; btn.disabled = true;
-        const timer = setInterval(() => {
-            if (i >= photos.length) { clearInterval(timer); btn.innerText = "▶️ 輪播"; btn.disabled = false; return; }
-            bringToFront(photos[i]); i++;
-        }, 1200);
-    };
+        let i = 0;
+        cycleInterval = setInterval(() => {
+            bringToFront(photos[i % photos.length]);
+            i++;
+        }, 1500); // 1.5 秒換一張
+    }
 
-    var map = L.map('map').setView([24.993, 121.496], 15);
+    // 初始化地圖在中和
+    var map = L.map('map', { zoomControl: false }).setView([24.993, 121.496], 14); 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© CARTO' }).addTo(map);
+    L.control.zoom({ position: 'topleft' }).addTo(map);
+
+    // 🏠 加入回到預設位置按鈕
+    var HomeButton = L.Control.extend({
+        options: { position: 'topleft' },
+        onAdd: function (map) {
+            var btn = L.DomUtil.create('div', 'home-btn');
+            btn.innerHTML = '🏠';
+            btn.onclick = function() { map.setView([24.993, 121.496], 14.5); };
+            return btn;
+        }
+    });
+    map.addControl(new HomeButton());
+
     var marker;
+    var interactionMode = 'view'; // view 或 edit
+
+    window.setInteractionMode = (mode) => {
+        interactionMode = mode;
+        document.getElementById('modeView').classList.toggle('mode-active', mode === 'view');
+        document.getElementById('modeEdit').classList.toggle('mode-active', mode === 'edit');
+        document.getElementById('editFormArea').style.opacity = (mode === 'edit' ? '1' : '0.5');
+        document.getElementById('editFormArea').style.pointerEvents = (mode === 'edit' ? 'auto' : 'none');
+        if(mode === 'view' && marker) map.removeLayer(marker);
+    };
 
     async function autoDetectVillage(lat, lng) {
         const geoStatus = document.getElementById('geoStatus');
@@ -169,7 +211,7 @@
 
     function updateLocation(lat, lng, zoom = 17) {
         if (marker) map.removeLayer(marker);
-        marker = L.marker([lat, lng], {draggable: true}).addTo(map);
+        marker = L.marker([lat, lng], {draggable: true, icon: L.icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]})}).addTo(map);
         map.setView([lat, lng], zoom);
         document.getElementById('lat').value = lat;
         document.getElementById('lng').value = lng;
@@ -190,6 +232,7 @@
         
         snap.forEach(docSnap => {
             const d = docSnap.data();
+            const id = docSnap.id;
             const jsDate = d.createdAt?.toDate() || new Date();
             let show = (filter === 'all');
             if(filter === 'today' && jsDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate())) show = true;
@@ -197,72 +240,41 @@
 
             if (show && d.lat && d.lng) {
                 const navUrl = `http://googleusercontent.com/maps.google.com/?q=${d.lat},${d.lng}&travelmode=motorcycle`;
-                
-                // 🌟 物資資訊顯示
                 let items = [];
-                if(d.tissues) items.push('放散裝面紙');
-                if(d.tissueBox) items.push('可放面紙盒');
-                if(d.banners) items.push('可掛布條');
-                if(d.boards) items.push('可掛看板');
+                if(d.tissues) items.push('放散裝面紙'); if(d.tissueBox) items.push('可放面紙盒'); if(d.banners) items.push('可掛布條'); if(d.boards) items.push('可掛看板');
                 let itemsHtml = items.map(i => `<span class="item-tag">✅ ${i}</span>`).join('');
 
-                // 🌟 天女散花
-                let galleryHtml = `<div class="photo-stack-container">`;
+                let galleryHtml = `<div class="photo-stack-container" id="stack-${id}">`;
                 if (d.photos && d.photos.length > 0) {
-                    const count = d.photos.length;
                     d.photos.forEach((url, idx) => {
-                        const angle = (idx / count) * 360;
-                        const radius = count > 3 ? 15 : 5;
-                        const tx = Math.cos(angle * Math.PI / 180) * radius;
-                        const ty = Math.sin(angle * Math.PI / 180) * radius;
-                        const rot = (Math.random() * 40) - 20;
-                        galleryHtml += `<img src="${url}" class="stack-photo" 
-                            style="transform: rotate(${rot}deg) translate(${tx}px, ${ty}px); z-index: ${idx};" 
-                            onclick="bringToFront(this)">`;
+                        const rot = (Math.random() * 30) - 15;
+                        galleryHtml += `<img src="${url}" class="stack-photo" style="transform: rotate(${rot}deg);" onclick="bringToFront(this)">`;
                     });
                 } else { galleryHtml += `<div style="padding-top:60px; color:#999;">(無照片)</div>`; }
                 galleryHtml += `</div>`;
 
-                let popupHtml = `<div style="text-align:center; min-width:240px;">
+                let popupHtml = `<div style="text-align:center; min-width:220px;">
                     <b style="font-size:17px; color:#333;">${d.storeName}</b><br>
                     <small style="color:#666;">${d.village}</small><br>
                     <div style="margin-top:5px;">${itemsHtml}</div>
                     ${galleryHtml}
-                    <div class="btn-row">
-                        <button class="cycle-btn" onclick="startCycling(this)">▶️ 輪播</button>
-                        <a href="${navUrl}" target="_blank" class="nav-link">🛵 導航</a>
-                    </div>
+                    <a href="${navUrl}" target="_blank" class="nav-link">🛵 導航</a>
                 </div>`;
                 
-                L.marker([d.lat, d.lng]).addTo(map).bindPopup(popupHtml);
+                const m = L.marker([d.lat, d.lng]).addTo(map).bindPopup(popupHtml);
+                m.on('popupopen', () => { initAutoCycle(`stack-${id}`); });
+                m.on('popupclose', () => { if(cycleInterval) clearInterval(cycleInterval); });
             }
         });
     }
 
-    // 📍 抓照片 GPS
-    document.getElementById('btnExif').onclick = async () => {
-        const files = document.getElementById('photos').files;
-        if (files.length === 0) return alert("請先選取照片！");
-        document.getElementById('status').innerText = "🔍 掃描中...";
-        let found = false;
-        for (let i = 0; i < files.length; i++) {
-            await new Promise(res => {
-                EXIF.getData(files[i], function() {
-                    let latArr = EXIF.getTag(this, "GPSLatitude"), lngArr = EXIF.getTag(this, "GPSLongitude");
-                    if (latArr && lngArr) {
-                        let lat = latArr[0] + latArr[1]/60 + latArr[2]/3600;
-                        let lng = lngArr[0] + lngArr[1]/60 + lngArr[2]/3600;
-                        updateLocation(lat, lng); found = true;
-                    }
-                    res();
-                });
-            });
-            if (found) break;
+    map.on('click', e => {
+        if(interactionMode === 'edit') {
+            updateLocation(e.latlng.lat, e.latlng.lng);
         }
-        document.getElementById('status').innerText = found ? "✅ 座標抓取成功" : "❌ 找不到座標";
-    };
+    });
 
-    map.on('click', e => updateLocation(e.latlng.lat, e.latlng.lng));
+    // 其他原本的功能 (GPS, Address, Compress, Submit) 保持不變...
     document.getElementById('btnGps').onclick = () => navigator.geolocation.getCurrentPosition(p => updateLocation(p.coords.latitude, p.coords.longitude));
     document.getElementById('btnAddress').onclick = async () => {
         let addr = document.getElementById('address').value;
