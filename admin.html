@@ -6,38 +6,59 @@
     <title>友善店家-控制台</title>
     <style>
         body { font-family: '微軟正黑體', sans-serif; padding: 20px; background: #f4f7f6; margin: 0; }
-        .header-box { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
-        .filter-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-top: 10px; }
+        .header-box { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .header-title { display: flex; justify-content: space-between; align-items: center; }
+        .filter-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #eee; }
         select, input { padding: 8px; border-radius: 6px; border: 1px solid #ccc; }
         .table-container { background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; min-width: 1000px; }
-        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
-        th { background: #007bff; color: white; position: sticky; top: 0; }
+        table { width: 100%; border-collapse: collapse; min-width: 1100px; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; vertical-align: middle; }
+        th { background: #007bff; color: white; position: sticky; top: 0; z-index: 10; }
         .tag { display: inline-block; background: #28a745; color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; margin: 2px; }
         .btn-link { display: inline-flex; align-items: center; padding: 6px 14px; border-radius: 20px; text-decoration: none; font-size: 12px; font-weight: bold; margin: 2px; color: white !important; cursor: pointer; border: none; }
         .loc-btn { background: #22c55e; } .nav-btn { background: #1a73e8; } .edit-btn { background: #ffc107; color: #333 !important; } .del-btn { background: #dc3545; }
-        .chief-tag { display: inline-block; padding: 4px 12px; border-radius: 20px; border: 1px solid #ddd; font-weight: bold; font-size: 13px; }
+        .chief-tag { display: inline-block; padding: 4px 12px; border-radius: 20px; border: 1px solid #ddd; font-weight: bold; font-size: 13px; margin-top: 4px; }
         .chief-female { background-color: #ffeef2; color: #d63384; } .chief-male { background-color: #f0f7ff; color: #007bff; }
-        .photo-thumb { width: 45px; height: 45px; border-radius: 4px; object-fit: cover; border: 1px solid #eee; }
+        .photo-thumb { width: 45px; height: 45px; border-radius: 4px; object-fit: cover; border: 1px solid #eee; margin: 2px; }
         #editModal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; box-shadow:0 0 25px rgba(0,0,0,0.3); border-radius:12px; z-index:100; width:450px; max-width: 90%; }
         .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:99; }
-        .dist-warning { background: #fff3f3; border: 1px solid #ffcdd2; color: #d32f2f; padding: 10px; border-radius: 6px; margin-bottom: 12px; font-size: 13px; font-weight: bold; display: none; }
     </style>
 </head>
 <body>
+
 <div class="header-box">
-    <div>
-        <h2>📊 友善店家-控制台 <span id="dataCount" style="font-size:14px; color:#666;"></span></h2>
-        <div class="filter-row">
-            📅 <select id="timeFilter" onchange="applyFilters()"><option value="all">完整顯示</option><option value="today">今天新增</option></select>
-            分區 <select id="distFilter" onchange="applyFilters()"><option value="all">所有分區</option><option value="漳和">漳和</option><option value="員山">員山</option><option value="秀安">秀安</option><option value="南勢">南勢</option></select>
-        </div>
+    <div class="header-title">
+        <h2 style="margin: 0;">📊 友善店家-控制台 <span id="dataCount" style="font-size:14px; color:#666; font-weight:normal;"></span></h2>
+    </div>
+    
+    <div class="filter-row" style="border-top: none;">
+        <div>📅 <select id="timeFilter" onchange="applyFilters()"><option value="all">完整顯示</option><option value="today">今天新增</option></select></div>
+        <div>分區 <select id="distFilter" onchange="applyFilters()"><option value="all">所有分區</option><option value="漳和">漳和</option><option value="員山">員山</option><option value="秀安">秀安</option><option value="南勢">南勢</option></select></div>
+    </div>
+    
+    <div class="filter-row">
+        <b>📦 物資篩選：</b>
+        <label><input type="checkbox" id="fTissues" onchange="applyFilters()"> 面紙</label>
+        <label><input type="checkbox" id="fBox" onchange="applyFilters()"> 面紙盒</label>
+        <label><input type="checkbox" id="fBanners" onchange="applyFilters()"> 布條</label>
+        <label><input type="checkbox" id="fBoards" onchange="applyFilters()"> 看板</label>
+        <small style="color:#888; margin-left:10px;">(勾選後僅顯示包含該物資的店家)</small>
     </div>
 </div>
 
 <div class="table-container">
     <table>
-        <thead><tr><th>店名 / 地址</th><th>座標 (GPS優先)</th><th>里別 / 里長</th><th>配置物資</th><th>照片</th><th>功能操作</th></tr></thead>
+        <thead>
+            <tr>
+                <th>店名 / 地址</th>
+                <th>座標</th>
+                <th>里別 / 里長</th>
+                <th>配置物資</th>
+                <th>備註</th>
+                <th>照片</th>
+                <th>功能操作</th>
+            </tr>
+        </thead>
         <tbody id="storeList"></tbody>
     </table>
 </div>
@@ -45,13 +66,12 @@
 <div id="modalOverlay" class="modal-overlay" onclick="closeModal()"></div>
 <div id="editModal">
     <h3 style="margin-top:0;">✏️ 編輯店家資訊</h3>
-    <div id="distWarning" class="dist-warning"></div>
     <input type="hidden" id="editId">
     <label>店名</label> <input type="text" id="editName" style="width:100%; margin-bottom:12px;">
-    <label>地址</label> <input type="text" id="editAddr" onblur="checkDistance()" style="width:100%; margin-bottom:12px;">
+    <label>地址</label> <input type="text" id="editAddr" style="width:100%; margin-bottom:12px;">
     <div style="display:flex; gap:10px; margin-bottom:12px;">
-        <div style="flex:1;"><label>緯度</label><input type="text" id="editLat" style="width:100%;"></div>
-        <div style="flex:1;"><label>經度</label><input type="text" id="editLng" style="width:100%;"></div>
+        <div style="flex:1;"><label>緯度 (Lat)</label><input type="text" id="editLat" style="width:100%;"></div>
+        <div style="flex:1;"><label>經度 (Lng)</label><input type="text" id="editLng" style="width:100%;"></div>
     </div>
     <div style="margin-bottom:12px;">
         <b>物資：</b><br>
@@ -79,7 +99,6 @@
         const sSnap = await getDocs(query(collection(db, "friendly_stores"), orderBy("createdAt", "desc")));
         allData = sSnap.docs.map(d => ({id:d.id, ...d.data(), jsDate: d.data().createdAt?.toDate() || new Date()}));
         
-        // 背景修復遺漏里別
         allData.forEach(async (x, i) => {
             if(!x.village || x.village === "未定位" || !chiefBrain[x.village]) {
                 try {
@@ -93,11 +112,27 @@
     }
 
     window.applyFilters = () => {
-        const t = document.getElementById('timeFilter').value, d = document.getElementById('distFilter').value;
+        const t = document.getElementById('timeFilter').value;
+        const d = document.getElementById('distFilter').value;
+        
+        // 取得物資勾選狀態
+        const fTissues = document.getElementById('fTissues').checked;
+        const fBox = document.getElementById('fBox').checked;
+        const fBanners = document.getElementById('fBanners').checked;
+        const fBoards = document.getElementById('fBoards').checked;
+
         const filtered = allData.filter(x => {
-            let tM = (t==='all') || (x.jsDate.toDateString() === new Date().toDateString());
-            let dM = (d==='all') || (x.district === d);
-            return tM && dM;
+            let tMatch = (t==='all') || (x.jsDate.toDateString() === new Date().toDateString());
+            let dMatch = (d==='all') || (x.district === d);
+            
+            // 嚴格篩選：如果勾了某個物資，該店家就必須要有那個物資
+            let sMatch = true;
+            if (fTissues && x.tissues !== 'V') sMatch = false;
+            if (fBox && x.tissueBox !== 'V') sMatch = false;
+            if (fBanners && x.banners !== 'V') sMatch = false;
+            if (fBoards && x.boards !== 'V') sMatch = false;
+
+            return tMatch && dMatch && sMatch;
         });
         render(filtered);
     };
@@ -106,20 +141,28 @@
         const list = document.getElementById('storeList'); list.innerHTML = '';
         data.forEach(x => {
             let chief = chiefBrain[x.village] || { district: x.district || "未知", name: "待查", gender: "M" };
-            let items = []; if(x.tissues) items.push('面紙'); if(x.tissueBox) items.push('面紙盒'); if(x.banners) items.push('布條'); if(x.boards) items.push('看板');
+            let items = []; 
+            if(x.tissues === 'V') items.push('面紙'); 
+            if(x.tissueBox === 'V') items.push('面紙盒'); 
+            if(x.banners === 'V') items.push('布條'); 
+            if(x.boards === 'V') items.push('看板');
             
             const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lng}&travelmode=two-wheeler`;
             
+            // 替換 GPS 顯示格式、新增備註欄位
             list.innerHTML += `<tr>
-                <td><b>${x.storeName}</b><br><small>${x.address||''}</small></td>
-                <td><small>GPS: ${x.lat.toFixed(5)}, ${x.lng.toFixed(5)}</small></td>
+                <td><b style="font-size: 15px;">${x.storeName}</b><br><small style="color: #666;">${x.address||''}</small></td>
+                <td style="font-family: monospace; color: #444;">
+                    <small>Lat: ${x.lat.toFixed(5)}<br>Lng: ${x.lng.toFixed(5)}</small>
+                </td>
                 <td>${x.village}<br><span class="chief-tag ${chief.gender==='F'?'chief-female':'chief-male'}">${chief.name}</span></td>
                 <td>${items.map(i=>`<span class="tag">${i}</span>`).join('')}</td>
+                <td><small style="color:#555; word-break: break-all;">${x.notes || '<i style="color:#ccc;">無</i>'}</small></td>
                 <td>${(x.photos||[]).map(p=>`<a href="${p}" target="_blank"><img src="${p}" class="photo-thumb"></a>`).join('')}</td>
                 <td>
                     <a href="index.html?id=${x.id}" class="btn-link loc-btn">🌍 定位</a>
-                    <a href="${navUrl}" target="_blank" class="btn-link nav-btn">🛵 導航</a>
-                    <button class="btn-link edit-btn" onclick="openEdit('${x.id}')">修改</button>
+                    <a href="${navUrl}" target="_blank" class="btn-link nav-btn">🛵 導航</a><br>
+                    <button class="btn-link edit-btn" onclick="openEdit('${x.id}')">✏️ 修改</button>
                     <button class="btn-link del-btn" onclick="deleteStore('${x.id}', '${x.storeName}')">🗑️ 刪除</button>
                 </td>
             </tr>`;
@@ -127,36 +170,35 @@
         document.getElementById('dataCount').innerText = `(共 ${data.length} 筆)`;
     }
 
-    // 刪除資料庫節點功能 (附密碼 1128)
     window.deleteStore = async (id, name) => {
         const pwd = prompt(`確定要刪除「${name}」嗎？\n請輸入刪除密碼：`);
-        if (pwd !== "1128") {
-            if (pwd !== null) alert("❌ 密碼錯誤，取消刪除。");
-            return;
-        }
-        
+        if (pwd !== "1128") { if (pwd !== null) alert("❌ 密碼錯誤，取消刪除。"); return; }
         if (confirm(`最後確認：真的要刪除「${name}」嗎？刪除後無法復原！`)) {
             try {
                 await deleteDoc(doc(db, "friendly_stores", id));
-                alert("✅ 刪除成功！");
-                loadAll();
-            } catch (e) {
-                alert("❌ 刪除失敗，請檢查網路狀態。");
-                console.error(e);
-            }
+                alert("✅ 刪除成功！"); loadAll();
+            } catch (e) { alert("❌ 刪除失敗，請檢查網路狀態。"); }
         }
     };
 
-    // 距離檢查與編輯儲存邏輯
     window.openEdit = (id) => {
         const x = allData.find(d => d.id === id); if(!x) return;
-        document.getElementById('editId').value = id; document.getElementById('editName').value = x.storeName; document.getElementById('editAddr').value = x.address || '';
-        document.getElementById('editLat').value = x.lat; document.getElementById('editLng').value = x.lng;
-        document.getElementById('editTissues').checked = x.tissues === 'V'; document.getElementById('editBox').checked = x.tissueBox === 'V';
-        document.getElementById('editBanners').checked = x.banners === 'V'; document.getElementById('editBoards').checked = x.boards === 'V';
-        document.getElementById('editNotes').value = x.notes || ''; document.getElementById('editModal').style.display='block'; document.getElementById('modalOverlay').style.display='block';
+        document.getElementById('editId').value = id; 
+        document.getElementById('editName').value = x.storeName; 
+        document.getElementById('editAddr').value = x.address || '';
+        document.getElementById('editLat').value = x.lat; 
+        document.getElementById('editLng').value = x.lng;
+        document.getElementById('editTissues').checked = x.tissues === 'V'; 
+        document.getElementById('editBox').checked = x.tissueBox === 'V';
+        document.getElementById('editBanners').checked = x.banners === 'V'; 
+        document.getElementById('editBoards').checked = x.boards === 'V';
+        document.getElementById('editNotes').value = x.notes || ''; 
+        document.getElementById('editModal').style.display='block'; 
+        document.getElementById('modalOverlay').style.display='block';
     };
+    
     window.closeModal = () => { document.getElementById('editModal').style.display='none'; document.getElementById('modalOverlay').style.display='none'; };
+    
     window.saveEdit = async () => {
         const id = document.getElementById('editId').value; const btn = document.getElementById('saveEditBtn');
         btn.disabled = true; btn.innerText = "⏳ 儲存中...";
@@ -165,8 +207,18 @@
             const res = await fetch(`https://api.nlsc.gov.tw/other/TownVillagePointQuery/${lng}/${lat}`);
             const vName = new DOMParser().parseFromString(await res.text(), "text/xml").getElementsByTagName("villageName")[0]?.textContent || "未定位";
             const chief = chiefBrain[vName] || { district: "未知", name: "待查" };
-            await updateDoc(doc(db, "friendly_stores", id), { storeName: document.getElementById('editName').value, address: document.getElementById('editAddr').value, lat, lng, village: vName, district: chief.district, chiefName: chief.name, tissues: document.getElementById('editTissues').checked ? "V" : "", tissueBox: document.getElementById('editBox').checked ? "V" : "", banners: document.getElementById('editBanners').checked ? "V" : "", boards: document.getElementById('editBoards').checked ? "V" : "", notes: document.getElementById('editNotes').value });
-            alert("✅ 儲存並修復里別成功！"); closeModal(); loadAll();
+            await updateDoc(doc(db, "friendly_stores", id), { 
+                storeName: document.getElementById('editName').value, 
+                address: document.getElementById('editAddr').value, 
+                lat, lng, 
+                village: vName, district: chief.district, 
+                tissues: document.getElementById('editTissues').checked ? "V" : "", 
+                tissueBox: document.getElementById('editBox').checked ? "V" : "", 
+                banners: document.getElementById('editBanners').checked ? "V" : "", 
+                boards: document.getElementById('editBoards').checked ? "V" : "", 
+                notes: document.getElementById('editNotes').value 
+            });
+            alert("✅ 儲存成功！"); closeModal(); loadAll();
         } catch (e) { alert("❌ 儲存失敗"); }
         btn.disabled = false; btn.innerText = "✅ 儲存修改";
     };

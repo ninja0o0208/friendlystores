@@ -174,7 +174,7 @@
             let distMatch = (distFilter === 'all' || d.district === distFilter);
 
             if (timeMatch && distMatch && d.lat && d.lng) {
-                const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}&travelmode=motorcycle`;
+                const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}&travelmode=two-wheeler`;
                 let items = []; if(d.tissues) items.push('可放散面紙'); if(d.tissueBox) items.push('可放面紙盒'); if(d.banners) items.push('可掛布條'); if(d.boards) items.push('可掛看板');
                 let itemsHtml = items.length > 0 ? `<div class="item-tag-container">${items.map(i => `<span class="item-tag">${i}</span>`).join('')}</div>` : '';
                 const hasPhotos = d.photos && d.photos.length > 0;
@@ -195,6 +195,24 @@
                 markers[id] = m;
             }
         });
+
+        // 🌟 新增邏輯：檢查網址中是否有 ?id=xxx，如果有就自動打開該圖釘的彈出視窗
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetId = urlParams.get('id');
+        if (targetId && markers[targetId]) {
+            const targetMarker = markers[targetId];
+            
+            // 讓地圖平滑移動並放大到該圖釘位置
+            map.flyTo(targetMarker.getLatLng(), 18, { animate: true, duration: 1 });
+            
+            // 延遲一點點時間等畫面移動完再打開視窗，視覺上比較順暢
+            setTimeout(() => {
+                targetMarker.openPopup();
+            }, 600);
+
+            // 自動將網址中的 ?id= 清除，避免使用者改變篩選條件時一直重複打開
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
     }
 
     document.getElementById('address').onblur = async function() {
@@ -251,7 +269,6 @@
 
     document.getElementById('btnGps').onclick = () => navigator.geolocation.getCurrentPosition(p => updateLocation(p.coords.latitude, p.coords.longitude));
     
-    // 👉 新增：處理 EXIF 相片定位邏輯
     document.getElementById('btnExif').onclick = () => {
         document.getElementById('exifFilePicker').click();
     };
@@ -267,7 +284,6 @@
             const lngRef = EXIF.getTag(this, "GPSLongitudeRef") || "E";
 
             if (latData && lngData) {
-                // 將「度、分、秒」轉換為十進位制
                 const lat = convertDMSToDD(latData[0], latData[1], latData[2], latRef);
                 const lng = convertDMSToDD(lngData[0], lngData[1], lngData[2], lngRef);
                 updateLocation(lat, lng);
@@ -276,15 +292,12 @@
                 alert("❌ 這張照片沒有包含 GPS 座標資訊 (或是系統無法讀取)。\n請確定相機拍照時有開啟「儲存位置」功能。");
             }
         });
-        // 清空 input，確保下次選同一張照片也能觸發 change 事件
         e.target.value = '';
     };
 
     function convertDMSToDD(degrees, minutes, seconds, direction) {
         let dd = Number(degrees) + (Number(minutes) / 60) + (Number(seconds) / 3600);
-        if (direction === "S" || direction === "W") {
-            dd = dd * -1;
-        }
+        if (direction === "S" || direction === "W") { dd = dd * -1; }
         return dd;
     }
 
