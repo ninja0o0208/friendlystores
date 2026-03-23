@@ -138,15 +138,44 @@
         
         overlay.style.background = egg.color; main.innerText = egg.main; sub.innerText = egg.sub; overlay.style.display = 'flex';
         
+        // 第一波掉落 (40個)
+        for(let i=0; i<40; i++) { 
+            const c = document.createElement('div'); c.className = 'confetti'; c.innerHTML = egg.symbols[Math.floor(Math.random() * egg.symbols.length)]; 
+            c.style.left = Math.random() * 100 + 'vw'; 
+            c.style.animationDelay = (Math.random() * 1.5) + 's'; 
+            c.style.animationDuration = (Math.random() * 3 + 2.5) + 's'; 
+            c.style.transform = `scale(${Math.random() * 0.5 + 0.8})`; 
+            overlay.appendChild(c); 
+        }
+
+        // 第二波掉落 (50個) - 延遲 2.5秒後開始
         for(let i=0; i<50; i++) { 
             const c = document.createElement('div'); c.className = 'confetti'; c.innerHTML = egg.symbols[Math.floor(Math.random() * egg.symbols.length)]; 
-            c.style.left = Math.random() * 100 + 'vw'; c.style.animationDelay = (Math.random() * 1.5) + 's'; c.style.animationDuration = (Math.random() * 3 + 2.5) + 's'; c.style.transform = `scale(${Math.random() * 0.5 + 0.8})`; overlay.appendChild(c); 
+            c.style.left = Math.random() * 100 + 'vw'; 
+            c.style.animationDelay = (Math.random() * 1.5 + 2.5) + 's'; 
+            c.style.animationDuration = (Math.random() * 3 + 2.5) + 's'; 
+            c.style.transform = `scale(${Math.random() * 0.5 + 0.8})`; 
+            overlay.appendChild(c); 
         }
         
-        setTimeout(() => { overlay.style.display = 'none'; overlay.querySelectorAll('.confetti').forEach(el => el.remove()); if(scrambleCount >= 30) scrambleCount = 0; }, 5500);
+        setTimeout(() => { 
+            overlay.style.display = 'none'; 
+            overlay.querySelectorAll('.confetti').forEach(el => el.remove()); 
+            if(scrambleCount >= 30) scrambleCount = 0; 
+        }, 5500);
     }
 
+    // 🌟 核心：開啟放大燈箱，抓取當前置頂的照片
     window.photoAction = function(img) { document.getElementById('lightboxImg').src = img.src; document.getElementById('lightbox').style.display = 'flex'; };
+    window.openLightbox = function(storeId) {
+        const container = document.getElementById(`stack-${storeId}`);
+        if(container) {
+            // 尋找當前有 'active' 標籤（最上層）的照片，如果沒有就抓第一張
+            const activeImg = container.querySelector('.stack-photo.active') || container.querySelector('.stack-photo');
+            if(activeImg) window.photoAction(activeImg);
+        }
+    };
+
     window.scramblePhotos = function(storeId) {
         scrambleCount++; triggerEasterEgg(); stopCycle(); 
         const container = document.getElementById(`stack-${storeId}`), photos = container.querySelectorAll('.stack-photo');
@@ -183,12 +212,11 @@
         const timeFilter = document.getElementById('mapTimeFilter').value;
         const distFilter = document.getElementById('mapDistFilter').value;
         
-        // 🌟 更新的四個分區中心點 (依據指定的里別預估)
         const distCoords = { 
-            "漳和": [25.0019, 121.4958], // 連和里
-            "員山": [25.0045, 121.4815], // 嘉慶里
-            "南勢": [24.9840, 121.5080], // 內南里
-            "秀安": [24.9935, 121.5165]  // 景平里
+            "漳和": [25.0019, 121.4958], 
+            "員山": [25.0045, 121.4815], 
+            "南勢": [24.9840, 121.5080], 
+            "秀安": [24.9935, 121.5165]  
         };
         
         if(distFilter !== 'all' && distCoords[distFilter]) map.setView(distCoords[distFilter], 15);
@@ -216,12 +244,16 @@
                 if (hasPhotos) {
                     d.photos.forEach((url, idx) => {
                         const rot = (Math.random() * 40) - 20, angle = (idx / d.photos.length) * 360, scatter = (d.photos.length > 4 ? 45 : 30);
-                        galleryHtml += `<img src="${url}" class="stack-photo" data-tidy-rot="${rot}" data-tidy-tx="${Math.cos(angle * Math.PI / 180) * scatter}" data-tidy-ty="${Math.sin(angle * Math.PI / 180) * scatter}" data-tidy-z="${idx}" style="transform: rotate(${rot}deg) translate(${Math.cos(angle * Math.PI / 180) * scatter}px, ${Math.sin(angle * Math.PI / 180) * scatter}px); z-index: ${idx}; --active-rot: ${(d.photos.length==1?rot:0)}deg;" onclick="photoAction(this)">`;
+                        // 🌟 點擊照片本身，觸發 scramblePhotos 弄亂特效
+                        galleryHtml += `<img src="${url}" class="stack-photo" data-tidy-rot="${rot}" data-tidy-tx="${Math.cos(angle * Math.PI / 180) * scatter}" data-tidy-ty="${Math.sin(angle * Math.PI / 180) * scatter}" data-tidy-z="${idx}" style="transform: rotate(${rot}deg) translate(${Math.cos(angle * Math.PI / 180) * scatter}px, ${Math.sin(angle * Math.PI / 180) * scatter}px); z-index: ${idx}; --active-rot: ${(d.photos.length==1?rot:0)}deg;" onclick="scramblePhotos('${id}')">`;
                     });
                     galleryHtml += `</div>`;
                 }
                 const displayLoc = d.address ? d.address : `${d.lat.toFixed(5)}, ${d.lng.toFixed(5)}`;
-                const scrambleHtml = hasPhotos ? `<button class="popup-btn scramble-btn" onclick="scramblePhotos('${id}')">🌀 弄亂</button>` : '';
+                
+                // 🌟 將按鈕改成 🔍放大，並綁定 openLightbox 函數
+                const scrambleHtml = hasPhotos ? `<button class="popup-btn scramble-btn" onclick="openLightbox('${id}')">🔍 放大</button>` : '';
+                
                 let popupHtml = `<div style="text-align:center; min-width:${hasPhotos?280:200}px;"><b style="font-size:18px;">${d.storeName}</b><span class="popup-addr">${displayLoc}</span>${itemsHtml}${galleryHtml}<div style="margin-top:10px; display:flex; justify-content:center; gap:5px;"><a href="${navUrl}" target="_blank" class="popup-btn nav-link">🛵 導航</a>${scrambleHtml}</div></div>`;
                 const m = L.marker([d.lat, d.lng]).addTo(map).bindPopup(popupHtml);
                 m.on('popupopen', () => { if(hasPhotos) { currentIdx = 0; startCycle(document.getElementById(`stack-${id}`)); } });
