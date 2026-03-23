@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>友善店家佈點地圖 - 天女散花版</title>
+    <title>友善店家佈點地圖 - 完整資訊版</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
@@ -16,40 +16,40 @@
         .main-btn { padding: 14px; background: #28a745; color: white; border: none; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; border-radius: 8px; margin-top: 10px; }
         .action-btn { padding: 8px 10px; background: #1a73e8; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; flex: 1; }
         .flex-row { display: flex; gap: 8px; margin-top: 5px; }
-        .auto-fill-hint { font-size: 14px; font-weight: bold; margin-top: 8px; display: block; }
         
-        /* 🛵 導航按鈕樣式 */
-        .nav-link { 
+        /* 🛵 導航與功能按鈕樣式 */
+        .btn-row { display: flex; justify-content: center; gap: 10px; margin-top: 15px; }
+        .nav-link, .cycle-btn { 
             display: inline-flex; align-items: center; justify-content: center;
-            padding: 8px 25px; background: #1a73e8; color: white !important; 
-            text-decoration: none !important; border-radius: 20px; 
-            font-weight: bold; font-size: 14px; margin-top: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            padding: 8px 18px; border-radius: 20px; font-weight: bold; font-size: 13px;
+            text-decoration: none !important; cursor: pointer; border: none;
+        }
+        .nav-link { background: #1a73e8; color: white !important; }
+        .cycle-btn { background: #6c757d; color: white; }
+
+        /* 📦 彈出視窗物資標籤 */
+        .item-tag {
+            display: inline-block; background: #e8f5e9; color: #2e7d32;
+            padding: 2px 8px; border-radius: 4px; font-size: 11px;
+            font-weight: bold; margin: 2px; border: 1px solid #c8e6c9;
         }
 
         /* 🌟 天女散花相片堆疊核心 CSS */
         .photo-stack-container {
-            position: relative;
-            width: 200px;
-            height: 200px;
-            margin: 20px auto 10px;
-            perspective: 1000px;
+            position: relative; width: 240px; height: 210px;
+            margin: 15px auto 5px; perspective: 1000px;
         }
         .stack-photo {
-            position: absolute;
-            width: 140px;
-            height: 140px;
-            object-fit: cover;
-            border: 4px solid white;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            cursor: pointer;
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), z-index 0.1s;
-            left: 30px;
-            top: 10px;
+            position: absolute; width: 130px; height: 130px;
+            object-fit: cover; border: 4px solid white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            cursor: pointer; transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+            left: 55px; top: 10px; z-index: 1;
         }
-        .stack-photo:hover {
-            transform: scale(1.05) rotate(0deg) !important;
-            z-index: 999 !important;
+        .stack-photo.active {
+            transform: scale(1.15) rotate(0deg) !important;
+            z-index: 1000 !important;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
         }
 
         @media (max-width: 768px) { body { flex-direction: column; } #map { flex: 1; min-height: 40vh; } #sidebar { flex: 1; min-height: 60vh; } }
@@ -61,12 +61,12 @@
 
 <div id="sidebar">
     <h2 style="margin-top: 0; color:#333;">📍 新增友善店家</h2>
-    <div class="form-group" style="background:#fff3cd;">
+    <div class="form-group" style="background:#fff3cd; border-color:#ffeeba;">
         <label><b>🔍 地圖顯示範圍</b></label>
         <select id="mapLayerFilter" style="width:100%; padding:10px; margin-top:5px; border-radius:6px; border:1px solid #ddd;">
-            <option value="today">僅顯示今天新增</option>
+            <option value="today">僅顯示今天新增 (預設)</option>
             <option value="month">顯示本月新增</option>
-            <option value="all" selected>顯示所有地點</option>
+            <option value="all">顯示所有地點</option>
         </select>
     </div>
     <div class="form-group">
@@ -80,10 +80,10 @@
             <button type="button" id="btnExif" class="action-btn">🖼️ 抓照片 GPS</button>
         </div>
         <div class="flex-row" style="margin-top: 8px;">
-            <input type="text" id="address" placeholder="輸入地址...">
+            <input type="text" id="address" placeholder="或輸入地址...">
             <button type="button" id="btnAddress" class="action-btn" style="max-width:80px;">🔍 搜尋</button>
         </div>
-        <span id="geoStatus" class="auto-fill-hint" style="color:#d9534f;">尚未定位</span>
+        <span id="geoStatus" style="font-size:13px; font-weight:bold; margin-top:8px; display:block; color:#d9534f;">尚未定位</span>
         <input type="hidden" id="lat"><input type="hidden" id="lng">
         <input type="hidden" id="district"><input type="hidden" id="village">
         <input type="hidden" id="chiefName"><input type="hidden" id="chiefPhone"><input type="hidden" id="chiefEmoji">
@@ -108,7 +108,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getFirestore, collection, addDoc, serverTimestamp, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    const GAS_API_URL = "https://script.google.com/macros/s/AKfycb9gxnqk55tZ2AU9q0zm3S44m-dgK_aYSJtGYrGkHjREu3-JgPVFEEem7bmbPOcRFEa/exec";
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz9gxnqk55tZ2AU9q0zm3S44m-dgK_aYSJtGYrGkHjREu3-JgPVFEEem7bmbPOcRFEa/exec";
     const firebaseConfig = {
       apiKey: "AIzaSyAI2OmA4VUUes3psK5cYJL-xqG_UVxv8iU",
       authDomain: "friendly-stores.firebaseapp.com",
@@ -127,15 +127,19 @@
         getInfo: function(v) { return this.data[v] || { district: "未知", name: "待查", phone: "無", gender: "M" }; }
     };
 
-    // 🌟 全域置頂函數 (供天女散花照片使用)
-    let maxZ = 10;
-    window.bringToFront = function(img) {
-        maxZ++;
-        img.style.zIndex = maxZ;
-        img.style.transform = "scale(1.1) rotate(0deg)";
+    // 🌟 全域置頂函數
+    let maxZ = 1000;
+    window.bringToFront = (img) => { maxZ++; img.style.zIndex = maxZ; img.classList.add('active'); };
+    window.startCycling = (btn) => {
+        const photos = Array.from(btn.closest('div').querySelector('.photo-stack-container').querySelectorAll('.stack-photo'));
+        if (photos.length < 2) return;
+        let i = 0; btn.innerText = "⏳ 輪播中..."; btn.disabled = true;
+        const timer = setInterval(() => {
+            if (i >= photos.length) { clearInterval(timer); btn.innerText = "▶️ 輪播"; btn.disabled = false; return; }
+            bringToFront(photos[i]); i++;
+        }, 1200);
     };
 
-    // 初始化地圖在中和
     var map = L.map('map').setView([24.993, 121.496], 15);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© CARTO' }).addTo(map);
     var marker;
@@ -192,29 +196,42 @@
             if(filter === 'month' && jsDate >= new Date(now.getFullYear(), now.getMonth(), 1)) show = true;
 
             if (show && d.lat && d.lng) {
-                const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}&travelmode=motorcycle`;
+                const navUrl = `http://googleusercontent.com/maps.google.com/?q=${d.lat},${d.lng}&travelmode=motorcycle`;
                 
-                // 🌟 生成天女散花 HTML
+                // 🌟 物資資訊顯示
+                let items = [];
+                if(d.tissues) items.push('放散裝面紙');
+                if(d.tissueBox) items.push('可放面紙盒');
+                if(d.banners) items.push('可掛布條');
+                if(d.boards) items.push('可掛看板');
+                let itemsHtml = items.map(i => `<span class="item-tag">✅ ${i}</span>`).join('');
+
+                // 🌟 天女散花
                 let galleryHtml = `<div class="photo-stack-container">`;
                 if (d.photos && d.photos.length > 0) {
-                    d.photos.forEach((url, index) => {
-                        let randomRot = Math.floor(Math.random() * 30) - 15; // -15 to 15 deg
-                        let randomX = Math.floor(Math.random() * 20) - 10;
-                        let randomY = Math.floor(Math.random() * 20) - 10;
+                    const count = d.photos.length;
+                    d.photos.forEach((url, idx) => {
+                        const angle = (idx / count) * 360;
+                        const radius = count > 3 ? 15 : 5;
+                        const tx = Math.cos(angle * Math.PI / 180) * radius;
+                        const ty = Math.sin(angle * Math.PI / 180) * radius;
+                        const rot = (Math.random() * 40) - 20;
                         galleryHtml += `<img src="${url}" class="stack-photo" 
-                            style="transform: rotate(${randomRot}deg) translate(${randomX}px, ${randomY}px); z-index: ${index};" 
+                            style="transform: rotate(${rot}deg) translate(${tx}px, ${ty}px); z-index: ${idx};" 
                             onclick="bringToFront(this)">`;
                     });
-                } else {
-                    galleryHtml += `<div style="padding-top:60px; color:#999;">(無照片)</div>`;
-                }
+                } else { galleryHtml += `<div style="padding-top:60px; color:#999;">(無照片)</div>`; }
                 galleryHtml += `</div>`;
 
-                let popupHtml = `<div style="text-align:center; min-width:220px;">
-                    <b style="font-size:16px; color:#333;">${d.storeName}</b><br>
-                    <small style="color:#666;">${d.village}</small>
+                let popupHtml = `<div style="text-align:center; min-width:240px;">
+                    <b style="font-size:17px; color:#333;">${d.storeName}</b><br>
+                    <small style="color:#666;">${d.village}</small><br>
+                    <div style="margin-top:5px;">${itemsHtml}</div>
                     ${galleryHtml}
-                    <a href="${navUrl}" target="_blank" class="nav-link">🛵 導航</a>
+                    <div class="btn-row">
+                        <button class="cycle-btn" onclick="startCycling(this)">▶️ 輪播</button>
+                        <a href="${navUrl}" target="_blank" class="nav-link">🛵 導航</a>
+                    </div>
                 </div>`;
                 
                 L.marker([d.lat, d.lng]).addTo(map).bindPopup(popupHtml);
@@ -222,11 +239,11 @@
         });
     }
 
-    // 📍 抓照片 GPS 掃描邏輯
+    // 📍 抓照片 GPS
     document.getElementById('btnExif').onclick = async () => {
         const files = document.getElementById('photos').files;
         if (files.length === 0) return alert("請先選取照片！");
-        document.getElementById('status').innerText = "🔍 掃描照片中...";
+        document.getElementById('status').innerText = "🔍 掃描中...";
         let found = false;
         for (let i = 0; i < files.length; i++) {
             await new Promise(res => {
@@ -242,7 +259,7 @@
             });
             if (found) break;
         }
-        document.getElementById('status').innerText = found ? "✅ 座標抓取成功" : "❌ 找不到座標資料";
+        document.getElementById('status').innerText = found ? "✅ 座標抓取成功" : "❌ 找不到座標";
     };
 
     map.on('click', e => updateLocation(e.latlng.lat, e.latlng.lng));
