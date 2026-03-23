@@ -10,144 +10,269 @@
     <style>
         body { margin: 0; padding: 0; font-family: '微軟正黑體', sans-serif; display: flex; height: 100vh; flex-direction: row; overflow: hidden; }
         #map { flex: 2; height: 100%; z-index: 1; transition: flex 0.4s ease; }
-        #sidebar { flex: 1; padding: 15px; overflow-y: auto; background: #fff; box-shadow: -2px 0 5px rgba(0,0,0,0.1); z-index: 1000; min-width: 320px; transition: all 0.3s ease; display: flex; flex-direction: column; }
+        #sidebar { flex: 1; padding: 15px; overflow-y: auto; background: #fff; box-shadow: -2px 0 5px rgba(0,0,0,0.1); z-index: 1000; min-width: 320px; transition: all 0.3s ease; display: flex; flex-direction: column; -webkit-overflow-scrolling: touch; }
         .form-group { margin-bottom: 12px; background: #f8f9fa; padding: 10px; border-radius: 10px; border: 1px solid #eee; }
+        .filter-group { background: #eef4ff; border: 1px solid #d0e1ff; margin-bottom: 15px; padding: 12px; border-radius: 10px; }
         input[type="text"], input[type="file"], select { width: 100%; padding: 12px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; }
-        .mode-toggle { display: flex; background: #eee; border-radius: 25px; padding: 4px; margin-bottom: 10px; }
-        .mode-btn { flex: 1; text-align: center; padding: 10px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .mode-toggle { display: flex; background: #eee; border-radius: 25px; padding: 4px; margin-bottom: 10px; flex-shrink: 0; }
+        .mode-btn { flex: 1; text-align: center; padding: 10px; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.3s; }
         .mode-active { background: #1a73e8; color: white; border-radius: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        .collapse-header { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f1f3f4; border-radius: 8px; cursor: pointer; margin-bottom: 10px; }
-        #collapsibleContent { transition: max-height 0.4s ease-in-out; max-height: 2000px; }
-        .is-collapsed #collapsibleContent { max-height: 0 !important; overflow: hidden; }
-        .main-btn { padding: 16px; background: #28a745; color: white; border: none; cursor: pointer; width: 100%; font-size: 18px; font-weight: bold; border-radius: 8px; margin-top: 10px; margin-bottom: 30px; }
-        .popup-btn { display: inline-flex; align-items: center; justify-content: center; padding: 8px 15px; border-radius: 20px; font-weight: bold; font-size: 14px; margin: 10px 4px 0; text-decoration: none !important; color: white !important; }
-        .nav-link { background: #1a73e8; } .scramble-btn { background: #ffc107; color: #333 !important; }
-        .item-tag { display: inline-block; background: #22c55e; color: white; padding: 4px 10px; border-radius: 6px; font-size: 12px; margin: 2px; }
-        .photo-stack-container { position: relative; width: 100%; height: 180px; margin-top: 30px; }
-        .stack-photo { position: absolute; width: 120px; height: 120px; object-fit: cover; border: 4px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.2); left: 50%; margin-left: -60px; transition: all 0.6s; cursor: pointer; }
-        #easterEggOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 10000; flex-direction: column; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
-        .easter-text { font-size: 48px; font-weight: 900; color: #ff4081; animation: bounce 0.8s infinite alternate; }
-        @keyframes bounce { from { transform: scale(0.9); } to { transform: scale(1.1); } }
-        @media (max-width: 768px) { body { flex-direction: column; } #map { flex: 1; } #sidebar { height: auto; padding-bottom: 50px; } }
+        .collapse-header { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f1f3f4; border-radius: 8px; cursor: pointer; margin-bottom: 10px; flex-shrink: 0; }
+        #collapsibleContent { transition: max-height 0.4s ease-in-out, opacity 0.3s; max-height: 2000px; opacity: 1; }
+        .is-collapsed #collapsibleContent { max-height: 0 !important; opacity: 0; pointer-events: none; overflow: hidden; }
+        .is-collapsed .collapse-icon { transform: rotate(-180deg); }
+        .collapse-icon { transition: transform 0.3s; font-weight: bold; }
+        .main-btn { padding: 16px; background: #28a745; color: white; border: none; cursor: pointer; width: 100%; font-size: 18px; font-weight: bold; border-radius: 8px; margin-top: 10px; margin-bottom: 30px; transition: 0.3s; }
+        .main-btn:disabled { background: #6c757d; cursor: not-allowed; }
+        .action-btn { padding: 10px; background: #1a73e8; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; flex: 1; }
+        .flex-row { display: flex; gap: 8px; margin-top: 5px; }
+        .home-btn { background: white; width: 34px; height: 34px; line-height: 34px; text-align: center; cursor: pointer; box-shadow: 0 1px 5px rgba(0,0,0,0.4); border-radius: 4px; font-size: 18px; }
+        .popup-btn { display: inline-flex; align-items: center; justify-content: center; padding: 8px 15px; border-radius: 20px; font-weight: bold; font-size: 14px; margin: 10px 4px 0; text-decoration: none !important; cursor: pointer; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .nav-link { background: #1a73e8; color: white !important; }
+        .scramble-btn { background: #ffc107; color: #333 !important; }
+        .item-tag-container { margin: 10px 0; padding: 8px; background: #f0fdf4; border-radius: 8px; border: 1px solid #dcfce7; position: relative; z-index: 1001; }
+        .item-tag { display: inline-block; background: #22c55e; color: white; padding: 4px 12px; border-radius: 6px; font-size: 14px; font-weight: bold; margin: 3px; }
+        .popup-addr { font-size: 12px; color: #666; margin-top: 2px; display: block; line-height: 1.2; }
+        .photo-stack-container { position: relative; width: 100%; height: 180px; margin: 35px auto 15px; perspective: 1000px; z-index: 100; }
+        .stack-photo { position: absolute; width: 120px; height: 120px; object-fit: cover; border: 4px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.2); left: 50%; margin-left: -60px; transition: all 0.6s cubic-bezier(0.165, 0.84, 0.44, 1); cursor: pointer; z-index: 1; }
+        .stack-photo.active { transform: scale(1.25) rotate(var(--active-rot, 0deg)) !important; z-index: 500 !important; box-shadow: 0 12px 35px rgba(0,0,0,0.4); }
+        #lightbox { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; justify-content: center; align-items: center; }
+        #lightbox img { max-width: 90%; max-height: 90%; border: 5px solid white; border-radius: 5px; }
+        @media (max-width: 768px) { body { flex-direction: column; } #map { flex: 1; min-height: 35vh; } #sidebar { flex: none; height: auto; max-height: 65vh; min-height: 60px; padding-bottom: 50px; } #sidebar.is-expanded { flex: 3; height: 65vh; } .easter-text { font-size: 36px; } }
     </style>
 </head>
 <body>
+
 <div id="map"></div>
-<div id="easterEggOverlay"><div id="eggMain" class="easter-text"></div><div id="eggSub" style="font-size:24px; font-weight:bold;"></div></div>
+
+<div id="easterEggOverlay">
+    <div id="eggMain" class="easter-text"></div>
+    <div id="eggSub" class="easter-sub"></div>
+</div>
+
 <div id="sidebar" class="is-collapsed">
     <div class="mode-toggle">
         <div id="modeView" class="mode-btn mode-active" onclick="setInteractionMode('view')">🔒 鎖定地圖</div>
         <div id="modeEdit" class="mode-btn" onclick="setInteractionMode('edit')">➕ 新增地點</div>
     </div>
-    <div class="collapse-header" onclick="toggleSidebar()"><span id="collapseTitle">🔽 展開店家輸入表單</span></div>
+
+    <div class="filter-group">
+        <label style="color: #1a73e8;"><b>🔍 地圖篩選 (分區與時間)</b></label>
+        <div class="flex-row">
+            <select id="mapDistFilter" style="margin-bottom: 5px; background: white;">
+                <option value="all">所有分區</option><option value="漳和">漳和分區</option><option value="員山">員山分區</option><option value="南勢">南勢分區</option><option value="秀安">秀安分區</option>
+            </select>
+        </div>
+        <select id="mapTimeFilter" style="background: white;">
+            <option value="all">顯示所有時間</option><option value="today">僅顯示今天新增</option><option value="month">顯示本月新增</option>
+        </select>
+    </div>
+
+    <div class="collapse-header" onclick="toggleSidebar()">
+        <span id="collapseTitle" style="font-weight:bold; color:#555;">🔽 展開店家輸入表單</span>
+        <span class="collapse-icon">🔽</span>
+    </div>
+
     <div id="collapsibleContent">
-        <div class="form-group" style="background:#fff3cd;"><label><b>🔍 地圖篩選</b></label><select id="mapFilter" onchange="loadStores()"><option value="all">所有地點</option><option value="today">今日新增</option></select></div>
         <div id="editFormArea" style="opacity: 0.5; pointer-events: none;">
-            <input type="text" id="storeName" placeholder="店家名稱*">
-            <input type="text" id="address" placeholder="輸入地址後離開格子自動定位" style="margin-top:10px;">
-            <div id="geoStatus" style="font-size:12px; font-weight:bold; margin-top:5px; color:#d9534f;">尚未定位</div>
-            <div class="form-group" style="margin-top:10px;"><label><b>物資清單</b></label><br><label><input type="checkbox" id="tissues"> 面紙</label> <label><input type="checkbox" id="tissueBox"> 面紙盒</label> <label><input type="checkbox" id="banners"> 布條</label> <label><input type="checkbox" id="boards"> 看板</label></div>
-            <input type="file" id="photos" accept="image/*" multiple>
-            <button id="submitBtn" class="main-btn" onclick="submitData()">🚀 送出資料</button>
+            <div class="form-group"><label><b>1. 店家名稱*</b></label><input type="text" id="storeName" placeholder="請輸入店名"></div>
+            <div class="form-group">
+                <label><b>2. 位置定位* (地圖點擊或輸入地址)</b></label>
+                <div class="flex-row">
+                    <button type="button" id="btnGps" class="action-btn">📱 手機定位</button>
+                    <button type="button" id="btnExif" class="action-btn">🖼️ 相片定位</button>
+                </div>
+                <input type="text" id="address" placeholder="輸入地址後按搜尋或點旁邊定位" style="margin-top:10px;">
+                <span id="geoStatus" style="font-size:12px; font-weight:bold; margin-top:8px; display:block; color:#d9534f;">尚未定位</span>
+            </div>
+            <div class="form-group">
+                <label><b>3. 放置物資</b></label><br>
+                <label style="display:block; margin:5px 0;"><input type="checkbox" id="tissues" value="V"> 可放散面紙</label>
+                <label style="display:block; margin:5px 0;"><input type="checkbox" id="tissueBox" value="V"> 可放面紙盒</label>
+                <label style="display:block; margin:5px 0;"><input type="checkbox" id="banners" value="V"> 可掛布條</label>
+                <label style="display:block; margin:5px 0;"><input type="checkbox" id="boards" value="V"> 可掛看板</label>
+                <input type="text" id="notes" placeholder="其他備註...">
+            </div>
+            <div class="form-group"><label><b>4. 上傳照片 (可多張)</b></label><input type="file" id="photos" accept="image/*" multiple></div>
+            <button id="submitBtn" class="main-btn">🚀 送出資料</button>
         </div>
     </div>
-    <div id="status" style="text-align:center; font-weight:bold; color:#1a73e8;"></div>
-    <input type="hidden" id="lat"><input type="hidden" id="lng"><input type="hidden" id="village"><input type="hidden" id="district">
+    <div id="status" style="text-align:center; font-weight:bold; color:#1a73e8; margin-bottom:20px;"></div>
+    <input type="hidden" id="lat"><input type="hidden" id="lng"><input type="hidden" id="village"><input type="hidden" id="district"><input type="hidden" id="chiefName"><input type="hidden" id="chiefPhone"><input type="hidden" id="chiefEmoji">
 </div>
+
+<div id="lightbox" onclick="this.style.display='none'"><img id="lightboxImg" src=""></div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDoc, getDocs, doc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, serverTimestamp, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    const firebaseConfig = { apiKey: "AIzaSyAI2OmA4VUUes3psK5cYJL-xqG_UVxv8iU", authDomain: "friendly-stores.firebaseapp.com", projectId: "friendly-stores", storageBucket: "friendly-stores.firebasestorage.app", databaseURL: "https://friendly-stores-default-rtdb.asia-southeast1.firebasedatabase.app" };
+    const firebaseConfig = { apiKey: "AIzaSyAI2OmA4VUUes3psK5cYJL-xqG_UVxv8iU", authDomain: "friendly-stores.firebaseapp.com", databaseURL: "https://friendly-stores-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "friendly-stores", storageBucket: "friendly-stores.firebasestorage.app", messagingSenderId: "251220478172", appId: "1:251220478172:web:34736127826b569d3a8c19" };
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz9gxnqk55tZ2AU9q0zm3S44m-dgK_aYSJtGYrGkHjREu3-JgPVFEEem7bmbPOcRFEa/exec";
-    const app = initializeApp(firebaseConfig); const db = getFirestore(app);
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-    let marker, interactionMode = 'view', scrambleCount = 0;
-    const map = L.map('map', { zoomControl: false }).setView([24.993, 121.496], 14);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+    const ChiefManager = { data: {"中原里":{district:"漳和",name:"陳慧書",phone:"0953-869616",gender:"F"},"連和里":{district:"漳和",name:"朱榮凱",phone:"0987-709723",gender:"M"},"連城里":{district:"漳和",name:"林仁凱",phone:"0921-815102",gender:"M"},"力行里":{district:"漳和",name:"周聰明",phone:"0935-922970",gender:"M"},"正行里":{district:"漳和",name:"陳盈君",phone:"0953-409130",gender:"F"},"德行里":{district:"漳和",name:"陳靜宜",phone:"0952-808977",gender:"F"},"枋寮里":{district:"漳和",name:"羅仕滄",phone:"0936-175166",gender:"M"},"漳和里":{district:"漳和",name:"劉建盛",phone:"0933-068655",gender:"M"},"廟美里":{district:"漳和",name:"鄭鈞瑋",phone:"0953-813913",gender:"M"},"福真里":{district:"漳和",name:"蔡昭發",phone:"0932-033585",gender:"M"},"福善里":{district:"漳和",name:"陳愷松",phone:"0936-212589",gender:"M"},"福美里":{district:"漳和",name:"梁廸文",phone:"0933-566024",gender:"M"},"福祥里":{district:"漳和",name:"張昌期",phone:"0937-096775",gender:"M"},"瓦磘里":{district:"漳和",name:"林綺芳",phone:"0910-132806",gender:"F"},"福和里":{district:"漳和",name:"簡健翔",phone:"0981-254789",gender:"M"},"佳和里":{district:"漳和",name:"陳得福",phone:"0933-223414",gender:"M"},"新南里":{district:"漳和",name:"申文博",phone:"0932-569521",gender:"M"},"南山里":{district:"漳和",name:"紀忠和",phone:"0928-582888",gender:"M"},"平河里":{district:"漳和",name:"黃湘雲",phone:"0958-090226",gender:"F"},"信和里":{district:"漳和",name:"許泰銘",phone:"0921-191193",gender:"M"},"仁和里":{district:"漳和",name:"林達",phone:"0988-373812",gender:"M"},"中正里":{district:"漳和",name:"李銀花",phone:"0921-888677",gender:"F"},"建和里":{district:"漳和",name:"江曉佩",phone:"0933-133178",gender:"F"},"中山里":{district:"漳和",name:"江雪嬌",phone:"0936-074706",gender:"F"},"碧河里":{district:"漳和",name:"賴清華",phone:"0917-262469",gender:"M"},"正南里":{district:"南勢",name:"游滿堂",phone:"0922-701258",gender:"M"},"頂南里":{district:"南勢",name:"謝森儒",phone:"0919-266119",gender:"M"},"華新里":{district:"南勢",name:"楊錦煌",phone:"0961-053836",gender:"M"},"東南里":{district:"南勢",name:"李武雄",phone:"0935-936381",gender:"M"},"華南里":{district:"南勢",name:"林平發",phone:"0935-366668",gender:"M"},"忠孝里":{district:"南勢",name:"李柏雲",phone:"0935-146333",gender:"F"},"崇南里":{district:"南勢",name:"林秀貞",phone:"0935-209479",gender:"F"},"興南里":{district:"南勢",name:"呂明志",phone:"0936-231394",gender:"M"},"景南里":{district:"南勢",name:"胡宇辰",phone:"0911-031888",gender:"F"},"景本里":{district:"南勢",name:"張林秀麗",phone:"0937-787801",gender:"F"},"橫路里":{district:"南勢",name:"呂星輝",phone:"0932-336215",gender:"M"},"內南里":{district:"南勢",name:"曾金禧",phone:"0933-735688",gender:"M"},"壽南里":{district:"南勢",name:"呂武雄",phone:"0932-237469",gender:"M"},"福南里":{district:"南勢",name:"邱淑芬",phone:"0920-859710",gender:"F"},"外南里":{district:"南勢",name:"連顯達",phone:"0931-136766",gender:"M"},"中興里":{district:"南勢",name:"游志鴻",phone:"0952-221166",gender:"M"},"吉興里":{district:"南勢",name:"陳成功",phone:"0978-992728",gender:"M"},"復興里":{district:"南勢",name:"尤敏玉",phone:"0975-778062",gender:"F"},"和興里":{district:"南勢",name:"蔡璧如",phone:"0919-228739",gender:"F"},"景平里":{district:"南勢",name:"游一龍",phone:"0988-385007",gender:"M"},"景新里":{district:"南勢",name:"楊惇富",phone:"0905-108507",gender:"M"},"景福里":{district:"南勢",name:"王坤茂",phone:"0932-124959",gender:"M"},"景安里":{district:"南勢",name:"劉浩偉",phone:"0905-108297",gender:"M"},"景文里":{district:"南勢",name:"林東銘",phone:"0928-122889",gender:"M"},"錦和里":{district:"員山",name:"林進明",phone:"0935-255031",gender:"M"},"錦昌里":{district:"員山",name:"邱尾玟",phone:"0927-065332",gender:"F"},"灰隱里":{district:"員山",name:"林鑫宏",phone:"0975-115156",gender:"M"},"積穗里":{district:"員山",name:"陳致廷",phone:"0989-094762",gender:"M"},"民享里":{district:"員山",name:"簡美蓮",phone:"0983-521630",gender:"F"},"員山里":{district:"員山",name:"藍國鐘",phone:"0910-211472",gender:"M"},"嘉穗里":{district:"員山",name:"吳有參",phone:"0938-256666",gender:"M"},"文元里":{district:"員山",name:"吳欣怡",phone:"0952-305508",gender:"F"},"嘉新里":{district:"員山",name:"林后福",phone:"0939-265560",gender:"M"},"民安里":{district:"員山",name:"張金鳳",phone:"0952-374586",gender:"F"},"安穗里":{district:"員山",name:"周靜萱",phone:"0931-285110",gender:"F"},"瑞穗里":{district:"員山",name:"陳美華",phone:"0910-220536",gender:"F"},"明穗里":{district:"員山",name:"何韋翰",phone:"0989-101168",gender:"M"},"清穗里":{district:"員山",name:"王金定",phone:"0935-209055",gender:"M"},"自強里":{district:"員山",name:"張興順",phone:"0928-247696",gender:"M"},"德穗里":{district:"員山",name:"詹文定",phone:"0932-084360",gender:"M"},"民生里":{district:"員山",name:"朱朝鶯",phone:"0912-823668",gender:"F"},"國光里":{district:"員山",name:"實德"}, "國光里":{district:"員山",name:"蘇俊琦",phone:"0952-632301",gender:"M"},"壽德里":{district:"員山",name:"張宗正",phone:"0926-719215",gender:"M"},"明德里":{district:"員山",name:"羅健容",phone:"0937-428555",gender:"M"},"錦中里":{district:"員山",name:"范榮豐",phone:"0935-579736",gender:"M"},"錦盛里":{district:"員山",name:"林建全",phone:"0919-918959",gender:"M"},"民有里":{district:"員山",name:"謝清炎",phone:"0937-322734",gender:"M"},"員富里":{district:"員山",name:"蔡宗霖",phone:"0937-530014",gender:"M"},"嘉慶里":{district:"員山",name:"吳永華",phone:"0936-450488",gender:"M"},"冠穗里":{district:"員山",name:"郭祥億",phone:"0912-833110",gender:"M"},"國華里":{district:"員山",name:"童宥翔",phone:"0952-814458",gender:"M"},"宜安里":{district:"秀安",name:"陳素貞",phone:"0939-818527",gender:"F"},"安樂里":{district:"秀安",name:"呂福來",phone:"0939-273205",gender:"M"},"安和里":{district:"秀安",name:"吳金",phone:"0989-065366",gender:"M"},"安順里":{district:"秀安",name:"王雪秋",phone:"0933-830269",gender:"F"},"安平里":{district:"秀安",name:"林芳飾",phone:"0978-635621",gender:"M"},"中安里":{district:"秀安",name:"李謙國",phone:"0939-778896",gender:"M"},"泰安里":{district:"秀安",name:"林美惠",phone:"0987-792713",gender:"F"},"秀山里":{district:"秀安",name:"林秋宇",phone:"0935-699363",gender:"M"},"秀成里":{district:"秀安",name:"吳金松",phone:"0923-299399",gender:"M"},"秀義里":{district:"秀安",name:"張文亮",phone:"0936-119594",gender:"M"},"秀福里":{district:"秀安",name:"林江西",phone:"0933-891482",gender:"M"},"秀景里":{district:"秀安",name:"李淙河",phone:"0933-222617",gender:"M"},"秀明里":{district:"秀安",name:"施義男",phone:"0935-515373",gender:"M"},"秀峰里":{district:"秀安",name:"周存炎",phone:"0988-950897",gender:"M"},"秀士里":{district:"秀安",name:"洪易松",phone:"0958-333187",gender:"M"},"秀水里":{district:"秀安",name:"陳炳男",phone:"0912-034916",gender:"M"},"秀仁里":{district:"秀安",name:"陳慶章",phone:"0918-565598",gender:"M"} }, getInfo: function(v){ return (this.data && this.data[v]) ? this.data[v] : {district:"未知",name:"待查",phone:"無",gender:"M"}; } };
+
+    const EasterEggConfig = [{count:10,main:"中和 陳怡君",sub:"✨ 幸福怡起拚 ✨",color:"rgba(255,255,255,0.8)",symbols:['❤️','💖','🌸','🎀']},{count:20,main:"中和好地方",sub:"🌈 怡起更美好 🌈",color:"rgba(255,192,203,0.8)",symbols:['⭐','🌟','✨','🍀']},{count:30,main:"中和 陳怡君",sub:"🔥 怡起努力拚 🔥",color:"rgba(255,255,0,0.7)",symbols:['💪','🚀','🔥','🎯']}];
+    let scrambleCount=0, cycleTimer=null, resumeTimer=null, currentIdx=0, markers={}, marker, interactionMode='view';
+
+    function triggerEasterEgg() {
+        const egg = EasterEggConfig.find(e => e.count === scrambleCount); if(!egg) return;
+        const overlay = document.getElementById('easterEggOverlay'), main = document.getElementById('eggMain'), sub = document.getElementById('eggSub');
+        overlay.style.background = egg.color; main.innerText = egg.main; sub.innerText = egg.sub; overlay.style.display = 'flex';
+        for(let i=0; i<40; i++) { const c = document.createElement('div'); c.className = 'confetti'; c.innerHTML = egg.symbols[Math.floor(Math.random() * egg.symbols.length)]; c.style.left = Math.random() * 100 + 'vw'; c.style.animationDelay = Math.random() * 2 + 's'; overlay.appendChild(c); }
+        setTimeout(() => { overlay.style.display = 'none'; overlay.querySelectorAll('.confetti').forEach(el => el.remove()); if(scrambleCount >= 30) scrambleCount = 0; }, 5000);
+    }
+
+    window.photoAction = function(img) { document.getElementById('lightboxImg').src = img.src; document.getElementById('lightbox').style.display = 'flex'; };
+    window.scramblePhotos = function(storeId) {
+        scrambleCount++; triggerEasterEgg(); stopCycle(); 
+        const container = document.getElementById(`stack-${storeId}`), photos = container.querySelectorAll('.stack-photo');
+        photos.forEach((p) => { p.classList.remove('active'); const rot = (Math.random() * 180)-90, tx = (Math.random()*200)-100, ty = (Math.random()*200)-100, scale = 0.7 + (Math.random()*0.6); p.style.transform = `rotate(${rot}deg) translate(${tx}px, ${ty}px) scale(${scale})`; p.style.zIndex = Math.floor(Math.random()*100); });
+        clearTimeout(resumeTimer); resumeTimer = setTimeout(() => { photos.forEach((p) => { p.style.transform = `rotate(${p.dataset.tidyRot}deg) translate(${p.dataset.tidyTx}px, ${p.dataset.tidyTy}px) scale(1)`; p.style.zIndex = p.dataset.tidyZ; }); startCycle(container); }, 5000);
+    };
+    function bringToFront(img) { img.parentElement.querySelectorAll('.stack-photo').forEach(p => p.classList.remove('active')); img.classList.add('active'); }
+    function stopCycle() { if(cycleTimer) clearInterval(cycleTimer); }
+    function startCycle(container) { stopCycle(); const photos = Array.from(container.querySelectorAll('.stack-photo')); if (photos.length < 2) { if(photos.length==1) bringToFront(photos[0]); return; } cycleTimer = setInterval(() => { currentIdx = (currentIdx + 1) % photos.length; bringToFront(photos[currentIdx]); }, 1800); }
+
+    var map = L.map('map', { zoomControl: false }).setView([24.993, 121.496], 13.5); 
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© CARTO' }).addTo(map);
+    L.control.zoom({ position: 'topleft' }).addTo(map);
+    var HomeBtn = L.Control.extend({ options: { position: 'topleft' }, onAdd: function (map) { var btn = L.DomUtil.create('div', 'home-btn'); btn.innerHTML = '🏠'; btn.onclick = function() { map.setView([24.993, 121.496], 13.5); }; return btn; } });
+    map.addControl(new HomeBtn());
 
     window.setInteractionMode = (mode) => {
         interactionMode = mode;
-        document.getElementById('modeView').classList.toggle('mode-active', mode==='view');
-        document.getElementById('modeEdit').classList.toggle('mode-active', mode==='edit');
-        document.getElementById('editFormArea').style.opacity = (mode==='edit'?1:0.4);
-        document.getElementById('editFormArea').style.pointerEvents = (mode==='edit'?'auto':'none');
-        if(mode==='edit') toggleSidebar(true);
+        document.getElementById('modeView').classList.toggle('mode-active', mode === 'view');
+        document.getElementById('modeEdit').classList.toggle('mode-active', mode === 'edit');
+        document.getElementById('editFormArea').style.opacity = (mode === 'edit' ? '1' : '0.4');
+        document.getElementById('editFormArea').style.pointerEvents = (mode === 'edit' ? 'auto' : 'none');
+        if(mode === 'edit') toggleSidebar(true);
+        if(mode === 'view' && marker) map.removeLayer(marker);
+    };
+    window.toggleSidebar = (forceExpand = false) => {
+        const s = document.getElementById('sidebar'); const title = document.getElementById('collapseTitle');
+        if(forceExpand || s.classList.contains('is-collapsed')) { s.classList.remove('is-collapsed'); s.classList.add('is-expanded'); title.innerText = "🔼 縮小店家輸入表單"; } 
+        else { s.classList.add('is-collapsed'); s.classList.remove('is-expanded'); title.innerText = "🔽 展開店家輸入表單"; }
     };
 
-    window.toggleSidebar = (force) => {
-        const s = document.getElementById('sidebar');
-        if(force || s.classList.contains('is-collapsed')) { s.classList.remove('is-collapsed'); document.getElementById('collapseTitle').innerText="🔼 縮小店家輸入表單"; }
-        else { s.classList.add('is-collapsed'); document.getElementById('collapseTitle').innerText="🔽 展開店家輸入表單"; }
-    };
+    async function loadExistingStores() {
+        map.eachLayer(l => { if(l instanceof L.Marker && l !== marker) map.removeLayer(l); });
+        const timeFilter = document.getElementById('mapTimeFilter').value;
+        const distFilter = document.getElementById('mapDistFilter').value;
+        const distCoords = { "漳和": [24.994, 121.503], "員山": [25.002, 121.485], "南勢": [24.985, 121.505], "秀安": [25.001, 121.515] };
+        if(distFilter !== 'all' && distCoords[distFilter]) map.setView(distCoords[distFilter], 15);
 
-    // 🌟 自動定位與資料庫匹配
+        const snap = await getDocs(query(collection(db, "friendly_stores"), orderBy("createdAt", "desc")));
+        snap.forEach(docSnap => {
+            const d = docSnap.data(), id = docSnap.id, jsDate = d.createdAt?.toDate() || new Date();
+            let timeMatch = (timeFilter === 'all');
+            const now = new Date();
+            if(timeFilter === 'today' && jsDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate())) timeMatch = true;
+            if(timeFilter === 'month' && jsDate >= new Date(now.getFullYear(), now.getMonth(), 1)) timeMatch = true;
+            let distMatch = (distFilter === 'all' || d.district === distFilter);
+
+            if (timeMatch && distMatch && d.lat && d.lng) {
+                const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}&travelmode=motorcycle`;
+                let items = []; if(d.tissues) items.push('可放散面紙'); if(d.tissueBox) items.push('可放面紙盒'); if(d.banners) items.push('可掛布條'); if(d.boards) items.push('可掛看板');
+                let itemsHtml = items.length > 0 ? `<div class="item-tag-container">${items.map(i => `<span class="item-tag">${i}</span>`).join('')}</div>` : '';
+                const hasPhotos = d.photos && d.photos.length > 0;
+                let galleryHtml = hasPhotos ? `<div class="photo-stack-container" id="stack-${id}">` : `<div style="margin-bottom:10px;"></div>`;
+                if (hasPhotos) {
+                    d.photos.forEach((url, idx) => {
+                        const rot = (Math.random() * 40) - 20, angle = (idx / d.photos.length) * 360, scatter = (d.photos.length > 4 ? 45 : 30);
+                        galleryHtml += `<img src="${url}" class="stack-photo" data-tidy-rot="${rot}" data-tidy-tx="${Math.cos(angle * Math.PI / 180) * scatter}" data-tidy-ty="${Math.sin(angle * Math.PI / 180) * scatter}" data-tidy-z="${idx}" style="transform: rotate(${rot}deg) translate(${Math.cos(angle * Math.PI / 180) * scatter}px, ${Math.sin(angle * Math.PI / 180) * scatter}px); z-index: ${idx}; --active-rot: ${(d.photos.length==1?rot:0)}deg;" onclick="photoAction(this)">`;
+                    });
+                    galleryHtml += `</div>`;
+                }
+                const displayLoc = d.address ? d.address : `${d.lat.toFixed(5)}, ${d.lng.toFixed(5)}`;
+                const scrambleHtml = hasPhotos ? `<button class="popup-btn scramble-btn" onclick="scramblePhotos('${id}')">🌀 弄亂</button>` : '';
+                let popupHtml = `<div style="text-align:center; min-width:${hasPhotos?280:200}px;"><b style="font-size:18px;">${d.storeName}</b><span class="popup-addr">${displayLoc}</span>${itemsHtml}${galleryHtml}<div style="margin-top:10px; display:flex; justify-content:center; gap:5px;"><a href="${navUrl}" target="_blank" class="popup-btn nav-link">🛵 導航</a>${scrambleHtml}</div></div>`;
+                const m = L.marker([d.lat, d.lng]).addTo(map).bindPopup(popupHtml);
+                m.on('popupopen', () => { if(hasPhotos) { currentIdx = 0; startCycle(document.getElementById(`stack-${id}`)); } });
+                m.on('popupclose', () => { stopCycle(); clearTimeout(resumeTimer); });
+                markers[id] = m;
+            }
+        });
+    }
+
     document.getElementById('address').onblur = async function() {
-        if(!this.value) return;
-        const res = await fetch(GAS_API_URL + "?address=" + encodeURIComponent(this.value));
-        const data = await res.json();
-        if(data.status==='OK') {
-            const { lat, lng } = data.results[0].geometry.location;
-            updateLocation(lat, lng);
-        }
+        let addr = this.value; if(!addr || addr.length < 3) return;
+        if(!addr.includes("區")) addr = "新北市中和區" + addr;
+        try {
+            const res = await fetch(GAS_API_URL + "?address=" + encodeURIComponent(addr));
+            const data = await res.json();
+            if(data.status==='OK') updateLocation(data.results[0].geometry.location.lat, data.results[0].geometry.location.lng);
+        } catch(e) { }
     };
 
     function updateLocation(lat, lng) {
-        if(marker) map.removeLayer(marker);
-        marker = L.marker([lat, lng], {draggable: true}).addTo(map);
+        if (marker) map.removeLayer(marker);
+        marker = L.marker([lat, lng], {draggable: true, icon: L.icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png', shadowSize: [41, 41], iconSize: [25, 41], iconAnchor: [12, 41]})}).addTo(map);
         map.setView([lat, lng], 17);
         document.getElementById('lat').value = lat; document.getElementById('lng').value = lng;
-        fetchVillage(lat, lng);
-    }
-
-    async function fetchVillage(lat, lng) {
-        const res = await fetch(`https://api.nlsc.gov.tw/other/TownVillagePointQuery/${lng}/${lat}`);
-        const vName = new DOMParser().parseFromString(await res.text(), "text/xml").getElementsByTagName("villageName")[0]?.textContent;
-        if(vName) {
-            document.getElementById('village').value = vName;
-            // 🌟 從資料庫抓大腦
-            const cDoc = await getDoc(doc(db, "chief_data", vName));
-            if(cDoc.exists()) {
-                document.getElementById('district').value = cDoc.data().district;
-                document.getElementById('geoStatus').innerHTML = `✅ ${cDoc.data().district}區-${vName}`;
-            } else {
-                document.getElementById('geoStatus').innerHTML = `✅ 未知區-${vName}`;
-            }
-            document.getElementById('geoStatus').style.color = "#28a745";
-        }
-    }
-
-    window.submitData = async () => {
-        const btn = document.getElementById('submitBtn');
-        const name = document.getElementById('storeName').value;
-        const lat = document.getElementById('lat').value;
-        if(!name || !lat) return alert("請填寫名稱並定位！");
-        btn.disabled = true; btn.innerText = "⏳ 儲存中...";
-        
-        // 儲存到 Firebase
-        await addDoc(collection(db, "friendly_stores"), {
-            storeName: name, address: document.getElementById('address').value,
-            lat: parseFloat(lat), lng: parseFloat(document.getElementById('lng').value),
-            village: document.getElementById('village').value, district: document.getElementById('district').value,
-            tissues: document.getElementById('tissues').checked ? "V" : "", tissueBox: document.getElementById('tissueBox').checked ? "V" : "",
-            banners: document.getElementById('banners').checked ? "V" : "", boards: document.getElementById('boards').checked ? "V" : "",
-            createdAt: serverTimestamp()
+        autoDetectVillage(lat, lng);
+        // 🌟 核心修復：手動拖移後更新座標
+        marker.on('dragend', function(event){
+            var pos = event.target.getLatLng();
+            document.getElementById('lat').value = pos.lat;
+            document.getElementById('lng').value = pos.lng;
+            autoDetectVillage(pos.lat, pos.lng);
         });
-        alert("新增成功！"); location.reload();
+    }
+
+    async function autoDetectVillage(lat, lng) {
+        try {
+            const res = await fetch(`https://api.nlsc.gov.tw/other/TownVillagePointQuery/${lng}/${lat}`);
+            const villageName = new DOMParser().parseFromString(await res.text(), "text/xml").getElementsByTagName("villageName")[0]?.textContent;
+            if (villageName) {
+                const info = ChiefManager.getInfo(villageName);
+                document.getElementById('village').value = villageName; document.getElementById('district').value = info.district;
+                document.getElementById('geoStatus').innerHTML = `✅ ${info.district}區-${villageName}`;
+                document.getElementById('geoStatus').style.color = "#28a745";
+            }
+        } catch (e) { }
+    }
+
+    map.on('click', e => { 
+        if(interactionMode === 'edit') updateLocation(e.latlng.lat, e.latlng.lng); 
+    });
+
+    document.getElementById('btnGps').onclick = () => navigator.geolocation.getCurrentPosition(p => updateLocation(p.coords.latitude, p.coords.longitude));
+    const compress = (file) => new Promise(res => { const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = e => { const img = new Image(); img.src = e.target.result; img.onload = () => { const cvs = document.createElement('canvas'); const scale = Math.min(1, 1024/img.width); cvs.width = img.width*scale; cvs.height = img.height*scale; cvs.getContext('2d').drawImage(img,0,0,cvs.width,cvs.height); res(cvs.toDataURL('image/jpeg',0.8)); }; }; });
+
+    document.getElementById('submitBtn').onclick = async () => {
+        const btn = document.getElementById('submitBtn'), storeName = document.getElementById('storeName').value, lat = document.getElementById('lat').value;
+        if(!storeName || !lat) return alert("❌ 請填寫店名與定位！");
+        btn.disabled = true; btn.innerText = "🚀 正在儲存...";
+        try {
+            let urls = []; const files = document.getElementById('photos').files;
+            if(files.length > 0) {
+                let pArr = []; for(let i=0; i<Math.min(files.length, 8); i++) pArr.push(await compress(files[i]));
+                const res = await fetch(GAS_API_URL, { method:'POST', body: JSON.stringify({ storeName, photos: pArr }) });
+                urls = (await res.json()).urls;
+            }
+            await addDoc(collection(db, "friendly_stores"), {
+                storeName, address: document.getElementById('address').value,
+                lat: parseFloat(lat), lng: parseFloat(document.getElementById('lng').value),
+                district: document.getElementById('district').value, village: document.getElementById('village').value,
+                tissues: document.getElementById('tissues').checked ? "V" : "", tissueBox: document.getElementById('tissueBox').checked ? "V" : "",
+                banners: document.getElementById('banners').checked ? "V" : "", boards: document.getElementById('boards').checked ? "V" : "",
+                notes: document.getElementById('notes').value, photos: urls, createdAt: serverTimestamp()
+            });
+            alert("✅ 新增成功！");
+            document.getElementById('storeName').value = ""; document.getElementById('address').value = ""; document.getElementById('notes').value = ""; document.getElementById('photos').value = "";
+            document.querySelectorAll('input[type=checkbox]').forEach(el => el.checked = false);
+            document.getElementById('geoStatus').innerText = "尚未定位"; document.getElementById('geoStatus').style.color = "#d9534f";
+            if(marker) map.removeLayer(marker); loadExistingStores();
+        } catch(e) { alert("❌ 錯誤: " + e.message); }
+        btn.disabled = false; btn.innerText = "🚀 送出資料";
     };
 
-    async function loadStores() {
-        map.eachLayer(l => { if(l instanceof L.Marker && l !== marker) map.removeLayer(l); });
-        const snap = await getDocs(query(collection(db, "friendly_stores"), orderBy("createdAt", "desc")));
-        snap.forEach(dSnap => {
-            const d = dSnap.data();
-            const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}&travelmode=motorcycle`;
-            L.marker([d.lat, d.lng]).addTo(map).bindPopup(`<div style="text-align:center;"><b>${d.storeName}</b><br><small>${d.address||''}</small><br><a href="${navUrl}" target="_blank" class="popup-btn nav-link">🛵 導航</a></div>`);
-        });
-    }
-
-    loadStores();
+    document.getElementById('mapTimeFilter').onchange = loadExistingStores;
+    document.getElementById('mapDistFilter').onchange = loadExistingStores;
+    loadExistingStores();
 </script>
 </body>
 </html>
