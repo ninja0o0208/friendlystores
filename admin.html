@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>友善店家 - 戰情控制台 (智慧診斷版)</title>
+    <title>友善店家-控制台</title>
     <style>
         body { font-family: '微軟正黑體', sans-serif; padding: 20px; background: #f4f7f6; margin: 0; }
         .header-box { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
@@ -23,17 +23,14 @@
         .chief-female { background-color: #ffeef2; border-color: #ffc0cb; color: #d63384; } 
         .chief-male { background-color: #f0f7ff; border-color: #b3d7ff; color: #007bff; }
         .photo-thumb { width: 45px; height: 45px; border-radius: 4px; margin-right: 3px; object-fit: cover; border: 1px solid #eee; }
-        
         #editModal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; box-shadow:0 0 25px rgba(0,0,0,0.3); border-radius:12px; z-index:100; width:450px; max-width: 90%; }
         .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:99; }
-        
-        /* 🚨 警告樣式 */
         .dist-warning { background: #fff3f3; border: 1px solid #ffcdd2; color: #d32f2f; padding: 10px; border-radius: 6px; margin-bottom: 12px; font-size: 13px; font-weight: bold; display: none; }
     </style>
 </head>
 <body>
 <div class="header-box">
-    <h2>📊 友善店家戰情控制台 <span id="dataCount" style="font-size:14px; color:#666;"></span></h2>
+    <h2>📊 友善店家-控制台 <span id="dataCount" style="font-size:14px; color:#666;"></span></h2>
     <div class="filter-row">
         📅 <select id="timeFilter" onchange="applyFilters()"><option value="all">完整顯示</option><option value="week">最近一週</option><option value="today">今天新增</option></select>
         分區 <select id="distFilter" onchange="updateVillageFilter()"><option value="all">所有分區</option><option value="漳和">漳和</option><option value="員山">員山</option><option value="秀安">秀安</option><option value="南勢">南勢</option></select>
@@ -51,27 +48,22 @@
 <div id="modalOverlay" class="modal-overlay" onclick="closeModal()"></div>
 <div id="editModal">
     <h3 style="margin-top:0;">✏️ 編輯店家資訊</h3>
-    
-    <div id="distWarning" class="dist-warning">⚠️ 注意：地址定位與 GPS 實際位置偏差過大 (>200m)，建議以現場拍攝的 GPS 座標為準。</div>
-
+    <div id="distWarning" class="dist-warning"></div>
     <input type="hidden" id="editId">
     <label>店名</label> <input type="text" id="editName" style="width:100%; margin-bottom:12px;">
     <label>地址</label> <input type="text" id="editAddr" onblur="checkDistance()" style="width:100%; margin-bottom:12px;">
-    
     <div style="display:flex; gap:10px; margin-bottom:12px;">
         <div style="flex:1;"><label>緯度 (Lat)</label><input type="text" id="editLat" style="width:100%;"></div>
         <div style="flex:1;"><label>經度 (Lng)</label><input type="text" id="editLng" style="width:100%;"></div>
     </div>
-    
     <div style="margin-bottom:12px;">
         <b>物資：</b><br>
-        <label><input type="checkbox" id="editTissues"> 散面紙</label> 
+        <label><input type="checkbox" id="editTissues"> 面紙</label> 
         <label><input type="checkbox" id="editBox"> 面紙盒</label> 
         <label><input type="checkbox" id="editBanners"> 布條</label> 
         <label><input type="checkbox" id="editBoards"> 看板</label>
     </div>
     <label>備註</label> <input type="text" id="editNotes" style="width:100%; margin-bottom:20px;">
-    
     <button id="saveEditBtn" onclick="saveEdit()" style="background:#28a745; color:white; border:none; padding:15px; width:100%; cursor:pointer; font-weight:bold; border-radius:8px;">✅ 儲存修改 (以座標為準)</button>
 </div>
 
@@ -99,19 +91,15 @@
         }
     };
 
-    // 🌟 距離計算函數 (單位: 公尺)
     function calcDistance(lat1, lon1, lat2, lon2) {
-        var R = 6371000; // 半徑
-        var dLat = (lat2 - lat1) * Math.PI / 180;
-        var dLon = (lon2 - lon1) * Math.PI / 180;
+        var R = 6371000; var dLat = (lat2 - lat1) * Math.PI / 180; var dLon = (lon2 - lon1) * Math.PI / 180;
         var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
     window.updateVillageFilter = () => {
         const d = document.getElementById('distFilter').value;
-        const vS = document.getElementById('villFilter');
-        vS.innerHTML = '<option value="all">所有里</option>';
+        const vS = document.getElementById('villFilter'); vS.innerHTML = '<option value="all">所有里</option>';
         Object.keys(ChiefManager.data).forEach(v => { if(d==='all' || ChiefManager.data[v].district === d) vS.innerHTML += `<option value="${v}">${v}</option>`; });
         applyFilters();
     };
@@ -119,29 +107,21 @@
     async function loadData() {
         const snap = await getDocs(query(collection(db, "friendly_stores"), orderBy("createdAt", "desc")));
         allData = snap.docs.map(d => ({id:d.id, ...d.data(), jsDate: d.data().createdAt?.toDate() || new Date()}));
-        
-        // 🌟 自動背景修復：找出「未定位」的資料並更新 UI
         allData.forEach(async (x, index) => {
             if(!x.village || x.village === "未定位") {
                 try {
                     const res = await fetch(`https://api.nlsc.gov.tw/other/TownVillagePointQuery/${x.lng}/${x.lat}`);
                     const villageName = new DOMParser().parseFromString(await res.text(), "text/xml").getElementsByTagName("villageName")[0]?.textContent;
-                    if(villageName) {
-                        allData[index].village = villageName; // 僅更新本地快照用於顯示
-                        render(allData.filter(applyLogic)); // 重新渲染部分
-                    }
+                    if(villageName) { allData[index].village = villageName; render(allData.filter(applyLogic)); }
                 } catch(e) {}
             }
         });
-
         applyFilters();
     }
 
     const applyLogic = (x) => {
         const t = document.getElementById('timeFilter').value, d = document.getElementById('distFilter').value, v = document.getElementById('villFilter').value;
-        let tM = true;
-        if(t==='today') tM = x.jsDate.toDateString() === new Date().toDateString();
-        if(t==='week') tM = x.jsDate >= new Date(new Date().getTime() - 7*86400000);
+        let tM = true; if(t==='today') tM = x.jsDate.toDateString() === new Date().toDateString(); if(t==='week') tM = x.jsDate >= new Date(new Date().getTime() - 7*86400000);
         return tM && (d==='all'||x.district===d) && (v==='all'||x.village===v);
     };
 
@@ -151,109 +131,64 @@
         const list = document.getElementById('storeList'); list.innerHTML = '';
         data.forEach(x => {
             let chiefInfo = ChiefManager.getInfo(x.village);
-            let items = []; if(x.tissues) items.push('可放散面紙'); if(x.tissueBox) items.push('面紙盒'); if(x.banners) items.push('布條'); if(x.boards) items.push('看板');
+            let items = []; if(x.tissues) items.push('面紙'); if(x.tissueBox) items.push('面紙盒'); if(x.banners) items.push('布條'); if(x.boards) items.push('看板');
             const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lng}&travelmode=motorcycle`;
             const chiefClass = (chiefInfo.gender === "F") ? "chief-female" : "chief-male";
             let photosHtml = (x.photos || []).map(p => `<a href="${p}" target="_blank"><img src="${p}" class="photo-thumb"></a>`).join('');
-
-            list.innerHTML += `<tr>
-                <td><b>${x.storeName}</b><br><small>${x.address||''}</small></td>
-                <td><small>GPS: ${x.lat.toFixed(5)}, ${x.lng.toFixed(5)}</small></td>
-                <td>${x.village || '自動定位中...'}<br><span class="chief-tag ${chiefClass}">${chiefInfo.name}</span></td>
-                <td>${items.map(i=>`<span class="tag">${i}</span>`).join('')}</td>
-                <td>${photosHtml}</td>
-                <td>
-                    <a href="index.html?id=${x.id}" class="btn-link loc-btn">🌍 定位</a>
-                    <a href="${navUrl}" target="_blank" class="btn-link nav-btn">🛵 導航</a>
-                    <button class="btn-link edit-btn" onclick="openEdit('${x.id}')">修改</button>
-                    <button class="btn-link del-btn" onclick="delStore('${x.id}')">刪除</button>
-                </td>
-            </tr>`;
+            list.innerHTML += `<tr><td><b>${x.storeName}</b><br><small>${x.address||''}</small></td><td><small>GPS: ${x.lat.toFixed(5)}, ${x.lng.toFixed(5)}</small></td><td>${x.village || '自動定位中...'}<br><span class="chief-tag ${chiefClass}">${chiefInfo.name}</span></td><td>${items.map(i=>`<span class="tag">${i}</span>`).join('')}</td><td>${photosHtml}</td><td><a href="index.html?id=${x.id}" class="btn-link loc-btn">🌍 定位</a><a href="${navUrl}" target="_blank" class="btn-link nav-btn">🛵 導航</a><button class="btn-link edit-btn" onclick="openEdit('${x.id}')">修改</button><button class="btn-link del-btn" onclick="delStore('${x.id}')">刪除</button></td></tr>`;
         });
         document.getElementById('dataCount').innerText = `(共 ${data.length} 筆)`;
     }
 
-    // 🌟 距離檢查邏輯
     window.checkDistance = async () => {
         const addr = document.getElementById('editAddr').value;
-        const curLat = parseFloat(document.getElementById('editLat').value);
-        const curLng = parseFloat(document.getElementById('editLng').value);
-        const warnBox = document.getElementById('distWarning');
-
-        if(!addr || isNaN(curLat)) return;
-
+        const curLat = parseFloat(document.getElementById('editLat').value), curLng = parseFloat(document.getElementById('editLng').value);
+        const warnBox = document.getElementById('distWarning'); if(!addr || isNaN(curLat)) return;
         try {
             const res = await fetch(GAS_API_URL + "?address=" + encodeURIComponent(addr));
             const data = await res.json();
             if(data.status === 'OK') {
-                const addrLat = data.results[0].geometry.location.lat;
-                const addrLng = data.results[0].geometry.location.lng;
-                const dist = calcDistance(curLat, curLng, addrLat, addrLng);
-                
-                // 超過 200 公尺就警示
+                const dist = calcDistance(curLat, curLng, data.results[0].geometry.location.lat, data.results[0].geometry.location.lng);
                 warnBox.style.display = (dist > 200) ? 'block' : 'none';
-                if(dist > 200) warnBox.innerText = `⚠️ 警告：地址定位與 GPS 位置相差 ${Math.round(dist)} 公尺，請確認是否正確！`;
+                if(dist > 200) warnBox.innerText = `⚠️ 警告：地址與 GPS 相差 ${Math.round(dist)} 公尺！`;
             }
         } catch(e) {}
     };
 
     window.openEdit = (id) => {
-        const x = allData.find(d => d.id === id);
-        if(!x) return;
-        document.getElementById('editId').value = id;
-        document.getElementById('editName').value = x.storeName;
-        document.getElementById('editAddr').value = x.address || '';
-        document.getElementById('editLat').value = x.lat;
-        document.getElementById('editLng').value = x.lng;
-        document.getElementById('editTissues').checked = x.tissues === 'V';
-        document.getElementById('editBox').checked = x.tissueBox === 'V';
-        document.getElementById('editBanners').checked = x.banners === 'V';
-        document.getElementById('editBoards').checked = x.boards === 'V';
-        document.getElementById('editNotes').value = x.notes || '';
-        document.getElementById('distWarning').style.display = 'none'; // 重置警示
-        document.getElementById('editModal').style.display='block'; 
-        document.getElementById('modalOverlay').style.display='block';
-        checkDistance(); // 開啟時順便檢查一次
+        const x = allData.find(d => d.id === id); if(!x) return;
+        document.getElementById('editId').value = id; document.getElementById('editName').value = x.storeName; document.getElementById('editAddr').value = x.address || '';
+        document.getElementById('editLat').value = x.lat; document.getElementById('editLng').value = x.lng;
+        document.getElementById('editTissues').checked = x.tissues === 'V'; document.getElementById('editBox').checked = x.tissueBox === 'V';
+        document.getElementById('editBanners').checked = x.banners === 'V'; document.getElementById('editBoards').checked = x.boards === 'V';
+        document.getElementById('editNotes').value = x.notes || ''; document.getElementById('distWarning').style.display = 'none';
+        document.getElementById('editModal').style.display='block'; document.getElementById('modalOverlay').style.display='block';
+        checkDistance();
     };
     
     window.closeModal = () => { document.getElementById('editModal').style.display='none'; document.getElementById('modalOverlay').style.display='none'; };
 
     window.saveEdit = async () => {
-        const id = document.getElementById('editId').value;
-        const btn = document.getElementById('saveEditBtn');
+        const id = document.getElementById('editId').value; const btn = document.getElementById('saveEditBtn');
         btn.disabled = true; btn.innerText = "⏳ 儲存中...";
-
         try {
-            // 重新解析里別，確保修復寫回
-            const lat = parseFloat(document.getElementById('editLat').value);
-            const lng = parseFloat(document.getElementById('editLng').value);
+            const lat = parseFloat(document.getElementById('editLat').value), lng = parseFloat(document.getElementById('editLng').value);
             const res = await fetch(`https://api.nlsc.gov.tw/other/TownVillagePointQuery/${lng}/${lat}`);
             const villageName = new DOMParser().parseFromString(await res.text(), "text/xml").getElementsByTagName("villageName")[0]?.textContent || "未定位";
             const chiefFixed = ChiefManager.getInfo(villageName);
-
             await updateDoc(doc(db, "friendly_stores", id), {
-                storeName: document.getElementById('editName').value,
-                address: document.getElementById('editAddr').value,
-                lat: lat, lng: lng,
-                village: villageName,
-                district: chiefFixed.district,
-                chiefName: chiefFixed.name,
-                tissues: document.getElementById('editTissues').checked ? "V" : "",
-                tissueBox: document.getElementById('editBox').checked ? "V" : "",
-                banners: document.getElementById('editBanners').checked ? "V" : "",
-                boards: document.getElementById('editBoards').checked ? "V" : "",
+                storeName: document.getElementById('editName').value, address: document.getElementById('editAddr').value, lat, lng,
+                village: villageName, district: chiefFixed.district, chiefName: chiefFixed.name,
+                tissues: document.getElementById('editTissues').checked ? "V" : "", tissueBox: document.getElementById('editBox').checked ? "V" : "",
+                banners: document.getElementById('editBanners').checked ? "V" : "", boards: document.getElementById('editBoards').checked ? "V" : "",
                 notes: document.getElementById('editNotes').value
             });
-            alert("✅ 儲存成功，且已自動校正里別資訊！");
-            closeModal(); loadData();
+            alert("✅ 儲存成功！"); closeModal(); loadData();
         } catch (error) { alert("❌ 儲存失敗：" + error.message); }
-        btn.disabled = false; btn.innerText = "✅ 儲存修改";
+        btn.disabled = false; btn.innerText = "✅ 儲存修改 (以座標為準)";
     };
     
-    window.delStore = async (id) => {
-        if(prompt("請輸入刪除密碼：") === "1128") { if(confirm("確定要刪除嗎？")) { await deleteDoc(doc(db, "friendly_stores", id)); loadData(); } }
-    };
-
+    window.delStore = async (id) => { if(prompt("請輸入刪除密碼：") === "1128") { if(confirm("確定要刪除嗎？")) { await deleteDoc(doc(db, "friendly_stores", id)); loadData(); } } };
     loadData();
 </script>
 </body>
