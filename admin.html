@@ -14,30 +14,18 @@
         th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; vertical-align: middle; }
         th { background: #007bff; color: white; position: sticky; top: 0; }
         .tag { display: inline-block; background: #28a745; color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; margin: 2px; }
-        
-        /* 導航按鈕美化 */
-        .nav-btn { 
-            display: inline-flex; align-items: center; padding: 6px 14px; 
-            background: #1a73e8; color: white !important; border: none; 
-            border-radius: 20px; cursor: pointer; text-decoration: none; 
-            font-size: 12px; font-weight: bold; transition: 0.2s;
-        }
-        .nav-btn:hover { background: #1557b0; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        
+        .nav-btn { display: inline-flex; align-items: center; padding: 6px 14px; background: #1a73e8; color: white !important; border-radius: 20px; text-decoration: none; font-size: 12px; font-weight: bold; }
         .edit-btn { background: #ffc107; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-left: 5px; }
         .del-btn { background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-left: 5px; }
-        
-        /* 里長標籤美化 */
         .chief-tag { display: inline-block; padding: 4px 12px; border-radius: 20px; border: 1px solid #ddd; font-weight: bold; font-size: 13px; }
-        .chief-female { background-color: #ffeef2; border-color: #ffc0cb; color: #d63384; box-shadow: 0 2px 4px rgba(214, 51, 132, 0.1); } 
+        .chief-female { background-color: #ffeef2; border-color: #ffc0cb; color: #d63384; } 
         .chief-male { background-color: #f0f7ff; border-color: #b3d7ff; color: #007bff; }
-        
+        .photo-thumb { width: 45px; height: 45px; border-radius: 4px; margin-right: 3px; object-fit: cover; border: 1px solid #eee; }
         #editModal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; box-shadow:0 0 25px rgba(0,0,0,0.2); border-radius:12px; z-index:100; width:450px; }
         .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:99; }
     </style>
 </head>
 <body>
-
 <div class="header-box">
     <h2>📊 友善店家戰情控制台 <span id="dataCount" style="font-size:14px; color:#666;"></span></h2>
     <div class="filter-row">
@@ -50,26 +38,21 @@
         里別 <select id="villFilter" onchange="applyFilters()"><option value="all">所有里</option></select>
     </div>
 </div>
-
 <div class="table-container">
     <table>
-        <thead><tr><th>店名 / 地址</th><th>座標</th><th>里別 / 里長</th><th>配置物資</th><th>現場照片</th><th>功能操作</th></tr></thead>
+        <thead><tr><th>店名 / 地址</th><th>座標</th><th>里別 / 里長</th><th>配置物資</th><th>照片</th><th>功能操作</th></tr></thead>
         <tbody id="storeList"></tbody>
     </table>
 </div>
-
 <div id="modalOverlay" class="modal-overlay" onclick="closeModal()"></div>
 <div id="editModal">
-    <h3 style="margin-top:0;">✏️ 編輯店家資訊</h3>
+    <h3>✏️ 編輯資訊</h3>
     <input type="hidden" id="editId">
     店名 <input type="text" id="editName" style="width:100%; margin-bottom:12px;">
     地址 <input type="text" id="editAddr" style="width:100%; margin-bottom:12px;">
-    緯度 (Lat) <input type="text" id="editLat" style="width:35%;"> 經度 (Lng) <input type="text" id="editLng" style="width:35%;"><br><br>
+    Lat <input type="text" id="editLat" style="width:35%;"> Lng <input type="text" id="editLng" style="width:35%;"><br><br>
     物資：<br>
-    <label><input type="checkbox" id="editTissues"> 面紙</label> 
-    <label><input type="checkbox" id="editBox"> 面紙盒</label> 
-    <label><input type="checkbox" id="editBanners"> 布條</label> 
-    <label><input type="checkbox" id="editBoards"> 看板</label><br><br>
+    <input type="checkbox" id="editTissues"> 面紙 <input type="checkbox" id="editBox"> 面紙盒 <input type="checkbox" id="editBanners"> 布條 <input type="checkbox" id="editBoards"> 看板<br><br>
     備註 <input type="text" id="editNotes" style="width:100%; margin-bottom:15px;">
     <button onclick="saveEdit()" style="background:#28a745; color:white; border:none; padding:12px; width:100%; cursor:pointer; font-weight:bold; border-radius:8px;">✅ 儲存修改</button>
 </div>
@@ -124,16 +107,20 @@
         const list = document.getElementById('storeList'); list.innerHTML = '';
         data.forEach(x => {
             let items = []; if(x.tissues) items.push('散裝面紙'); if(x.tissueBox) items.push('面紙盒'); if(x.banners) items.push('布條'); if(x.boards) items.push('看板');
-            const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lng}&travelmode=motorcycle`;
+            const navUrl = `http://googleusercontent.com/maps.google.com/?q=${x.lat},${x.lng}&travelmode=motorcycle`;
             const chiefClass = (x.chiefEmoji === "👩‍💼") ? "chief-female" : "chief-male";
+            
+            // 🌟 列表也完整列出縮圖
+            let photosHtml = (x.photos || []).map(p => `<a href="${p}" target="_blank"><img src="${p}" class="photo-thumb"></a>`).join('');
+
             list.innerHTML += `<tr>
                 <td><b>${x.storeName}</b><br><small>${x.address||''}</small></td>
                 <td><small>${x.lat.toFixed(5)},<br>${x.lng.toFixed(5)}</small></td>
                 <td>${x.village}<br><span class="chief-tag ${chiefClass}">${x.chiefEmoji||''}${x.chiefName||''}</span></td>
                 <td>${items.map(i=>`<span class="tag">${i}</span>`).join('')}</td>
-                <td>${(x.photos||[]).map(p=>`<img src="${p}" style="width:40px; height:40px; border-radius:4px; margin-right:3px; object-fit:cover;">`).join('')}</td>
+                <td>${photosHtml}</td>
                 <td>
-                    <a href="${navUrl}" target="_blank" class="nav-btn">🏍️ 導航</a>
+                    <a href="${navUrl}" target="_blank" class="nav-btn">🛵 導航</a>
                     <button class="edit-btn" onclick="openEdit('${x.id}')">修改</button>
                     <button class="del-btn" onclick="delStore('${x.id}')">刪除</button>
                 </td>
