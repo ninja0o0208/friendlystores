@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>友善店家佈點地圖 - 視覺終極版</title>
+    <title>友善店家佈點地圖 - 視覺終極修正版</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
@@ -14,7 +14,6 @@
         .form-group { margin-bottom: 12px; background: #f8f9fa; padding: 10px; border-radius: 10px; border: 1px solid #eee; }
         input[type="text"] { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; }
         
-        /* 模式切換 */
         .mode-toggle { display: flex; background: #eee; border-radius: 25px; padding: 4px; margin-bottom: 15px; }
         .mode-btn { flex: 1; text-align: center; padding: 8px; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.3s; }
         .mode-active { background: #1a73e8; color: white; border-radius: 20px; }
@@ -29,34 +28,40 @@
             display: inline-flex; align-items: center; justify-content: center;
             padding: 10px 40px; background: #1a73e8; color: white !important; 
             text-decoration: none !important; border-radius: 25px; 
-            font-weight: bold; font-size: 16px; margin-top: 15px;
+            font-weight: bold; font-size: 16px; margin-top: 25px; /* 增加頂部間距避開照片 */
             box-shadow: 0 4px 8px rgba(26, 115, 232, 0.4);
+            position: relative; z-index: 1001; /* 確保導航按鈕不被擋住 */
         }
 
-        /* 📦 放置物資標籤 (強化放大) */
-        .item-tag-container { margin: 10px 0; padding: 8px; background: #f0fdf4; border-radius: 8px; border: 1px solid #dcfce7; }
+        /* 📦 放置物資標籤 (強化並防止遮擋) */
+        .item-tag-container { 
+            margin: 10px 0; padding: 8px; background: #f0fdf4; 
+            border-radius: 8px; border: 1px solid #dcfce7;
+            position: relative; z-index: 1001; /* 🌟 關鍵：層級高於照片 */
+        }
         .item-tag { 
             display: inline-block; background: #22c55e; color: white; 
             padding: 4px 12px; border-radius: 6px; font-size: 14px;
             font-weight: bold; margin: 3px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        /* 🌟 天女散花相片堆疊 (下移並優化空間) */
+        /* 🌟 天女散花相片堆疊 (優化空間) */
         .photo-stack-container {
             position: relative; width: 100%; height: 180px;
-            margin: 25px auto 10px; /* 增加上邊距，讓它下移 */
+            margin: 35px auto 15px; /* 🌟 增加垂直邊距 */
             perspective: 1000px;
+            z-index: 100; /* 低於標籤和按鈕 */
         }
         .stack-photo {
-            position: absolute; width: 125px; height: 125px;
+            position: absolute; width: 120px; height: 120px;
             object-fit: cover; border: 4px solid white;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-            left: 50%; margin-left: -62px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            left: 50%; margin-left: -60px;
             transition: all 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
             cursor: pointer; z-index: 1;
         }
         .stack-photo.active {
-            transform: scale(1.3) rotate(var(--active-rot, 0deg)) !important;
+            transform: scale(1.25) rotate(var(--active-rot, 0deg)) !important;
             z-index: 500 !important;
             box-shadow: 0 12px 35px rgba(0,0,0,0.4);
         }
@@ -66,6 +71,10 @@
             background: rgba(0,0,0,0.9); z-index: 9999; justify-content: center; align-items: center;
         }
         #lightbox img { max-width: 90%; max-height: 90%; border: 5px solid white; border-radius: 5px; }
+
+        /* 調整 Popup 寬度 */
+        .leaflet-popup-content-wrapper { width: 300px !important; }
+        .leaflet-popup-content { width: 280px !important; margin: 15px 10px; }
 
         @media (max-width: 768px) { body { flex-direction: column; } #map { flex: 1.2; min-height: 40vh; } #sidebar { flex: 1.8; min-height: 50vh; } }
     </style>
@@ -129,7 +138,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getFirestore, collection, addDoc, serverTimestamp, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    // Firebase 設定保持不變
+    // Firebase 設定
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz9gxnqk55tZ2AU9q0zm3S44m-dgK_aYSJtGYrGkHjREu3-JgPVFEEem7bmbPOcRFEa/exec";
     const firebaseConfig = {
       apiKey: "AIzaSyAI2OmA4VUUes3psK5cYJL-xqG_UVxv8iU",
@@ -149,8 +158,8 @@
         getInfo: function(v) { return this.data[v] || { district: "未知", name: "待查", phone: "無", gender: "M" }; }
     };
 
-    // 相片引擎
     let cycleTimer = null, resumeTimer = null, currentIdx = 0;
+
     window.photoAction = function(img) {
         const container = img.parentElement;
         const total = container.querySelectorAll('.stack-photo').length;
@@ -167,11 +176,14 @@
             resumeTimer = setTimeout(() => { startCycle(container); }, 5000);
         }
     };
+
     function bringToFront(img) {
         img.parentElement.querySelectorAll('.stack-photo').forEach(p => p.classList.remove('active'));
         img.classList.add('active');
     }
+
     function stopCycle() { if(cycleTimer) clearInterval(cycleTimer); }
+
     function startCycle(container) {
         stopCycle();
         const photos = Array.from(container.querySelectorAll('.stack-photo'));
@@ -182,7 +194,6 @@
         }, 1800);
     }
 
-    // 地圖初始化
     var map = L.map('map', { zoomControl: false }).setView([24.993, 121.496], 14.5); 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© CARTO' }).addTo(map);
     L.control.zoom({ position: 'topleft' }).addTo(map);
@@ -222,7 +233,6 @@
                 const navUrl = `http://googleusercontent.com/maps.google.com/?q=${d.lat},${d.lng}&travelmode=motorcycle`;
                 let items = []; if(d.tissues) items.push('放散裝面紙'); if(d.tissueBox) items.push('可放面紙盒'); if(d.banners) items.push('可掛布條'); if(d.boards) items.push('可掛看板');
                 
-                // 🌟 新結構：標籤改到最上方
                 let itemsHtml = items.length > 0 ? `<div class="item-tag-container">${items.map(i => `<span class="item-tag">${i}</span>`).join('')}</div>` : '';
 
                 let galleryHtml = `<div class="photo-stack-container" id="stack-${id}">`;
@@ -232,7 +242,7 @@
                         const randomRot = (Math.random() * 40) - 20;
                         const activeRot = (count === 1) ? randomRot : 0;
                         const angle = (idx / count) * 360;
-                        const scatterRadius = (count === 1) ? 0 : (count > 4 ? 45 : 30); // 散更開
+                        const scatterRadius = (count === 1) ? 0 : (count > 4 ? 45 : 30);
                         const tx = Math.cos(angle * Math.PI / 180) * scatterRadius;
                         const ty = Math.sin(angle * Math.PI / 180) * scatterRadius;
                         galleryHtml += `<img src="${url}" class="stack-photo" style="transform: rotate(${randomRot}deg) translate(${tx}px, ${ty}px); --active-rot: ${activeRot}deg;" onclick="photoAction(this)">`;
@@ -241,7 +251,8 @@
                 galleryHtml += `</div>`;
 
                 let popupHtml = `<div style="text-align:center; min-width:260px;">
-                    <b style="font-size:18px; color:#333;">${d.storeName}</b><br><small style="color:#666;">${d.village}</small><br>
+                    <b style="font-size:18px; color:#333; position:relative; z-index:1002;">${d.storeName}</b><br>
+                    <small style="color:#666; position:relative; z-index:1002;">${d.village}</small><br>
                     ${itemsHtml} 
                     ${galleryHtml}
                     <div style="margin-top:10px;"><a href="${navUrl}" target="_blank" class="nav-link">🛵 導航</a></div>
@@ -258,8 +269,7 @@
         const geoStatus = document.getElementById('geoStatus'); geoStatus.innerText = "🔍 分析中...";
         try {
             const res = await fetch(`https://api.nlsc.gov.tw/other/TownVillagePointQuery/${lng}/${lat}`);
-            const xml = new DOMParser().parseFromString(await res.text(), "text/xml");
-            const villageName = xml.getElementsByTagName("villageName")[0]?.textContent;
+            const villageName = new DOMParser().parseFromString(await res.text(), "text/xml").getElementsByTagName("villageName")[0]?.textContent;
             if (villageName) {
                 const info = ChiefManager.getInfo(villageName);
                 document.getElementById('village').value = villageName;
