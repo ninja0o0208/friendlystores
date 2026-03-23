@@ -3,54 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>友善店家佈點地圖 - 靈活視野版</title>
+    <title>友善店家佈點地圖</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
     <style>
         body { margin: 0; padding: 0; font-family: '微軟正黑體', sans-serif; display: flex; height: 100vh; flex-direction: row; overflow: hidden; }
-        #map { flex: 2; height: 100%; z-index: 1; }
-        
-        /* 側邊欄滾動優化 */
-        #sidebar { 
-            flex: 1; padding: 15px; overflow-y: auto; background: #fff; 
-            box-shadow: -2px 0 5px rgba(0,0,0,0.1); z-index: 1000; 
-            min-width: 320px; transition: all 0.3s ease; 
-            display: flex; flex-direction: column;
-            -webkit-overflow-scrolling: touch; /* 手機滑動順暢 */
-        }
-        
+        #map { flex: 2; height: 100%; z-index: 1; transition: flex 0.4s ease; }
+        #sidebar { flex: 1; padding: 15px; overflow-y: auto; background: #fff; box-shadow: -2px 0 5px rgba(0,0,0,0.1); z-index: 1000; min-width: 320px; transition: all 0.3s ease; display: flex; flex-direction: column; -webkit-overflow-scrolling: touch; }
         .form-group { margin-bottom: 12px; background: #f8f9fa; padding: 10px; border-radius: 10px; border: 1px solid #eee; }
         input[type="text"], input[type="file"], select { width: 100%; padding: 12px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; }
-        
         .mode-toggle { display: flex; background: #eee; border-radius: 25px; padding: 4px; margin-bottom: 10px; flex-shrink: 0; }
         .mode-btn { flex: 1; text-align: center; padding: 10px; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.3s; }
         .mode-active { background: #1a73e8; color: white; border-radius: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        
-        /* 🌟 修正摺疊邏輯 */
-        .collapse-header { 
-            display: flex; justify-content: space-between; align-items: center; 
-            padding: 12px; background: #f1f3f4; border-radius: 8px; cursor: pointer; margin-bottom: 10px; flex-shrink: 0;
-        }
-        #collapsibleContent { 
-            transition: max-height 0.4s ease-in-out, opacity 0.3s;
-            max-height: 2000px; /* 預設夠高 */
-            opacity: 1;
-        }
+        .collapse-header { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f1f3f4; border-radius: 8px; cursor: pointer; margin-bottom: 10px; flex-shrink: 0; }
+        #collapsibleContent { transition: max-height 0.4s ease-in-out, opacity 0.3s; max-height: 2000px; opacity: 1; }
         .is-collapsed #collapsibleContent { max-height: 0 !important; opacity: 0; pointer-events: none; overflow: hidden; }
         .is-collapsed .collapse-icon { transform: rotate(-180deg); }
         .collapse-icon { transition: transform 0.3s; font-weight: bold; }
-
         .main-btn { padding: 16px; background: #28a745; color: white; border: none; cursor: pointer; width: 100%; font-size: 18px; font-weight: bold; border-radius: 8px; margin-top: 10px; margin-bottom: 30px; }
         .action-btn { padding: 10px; background: #1a73e8; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; flex: 1; }
         .flex-row { display: flex; gap: 8px; margin-top: 5px; }
-        
         .home-btn { background: white; width: 34px; height: 34px; line-height: 34px; text-align: center; cursor: pointer; box-shadow: 0 1px 5px rgba(0,0,0,0.4); border-radius: 4px; font-size: 18px; }
+        
+        /* 🛵 彈出視窗按鈕 */
+        .popup-btn { display: inline-flex; align-items: center; justify-content: center; padding: 8px 15px; border-radius: 20px; font-weight: bold; font-size: 14px; margin: 10px 4px 0; text-decoration: none !important; cursor: pointer; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .nav-link { background: #1a73e8; color: white !important; }
+        .scramble-btn { background: #ffc107; color: #333 !important; }
 
-        /* 🛵 彈出視窗 UI */
-        .nav-link { display: inline-flex; align-items: center; justify-content: center; padding: 10px 40px; background: #1a73e8; color: white !important; text-decoration: none !important; border-radius: 25px; font-weight: bold; font-size: 16px; margin-top: 15px; box-shadow: 0 4px 8px rgba(26,115,232,0.4); position: relative; z-index: 1001; }
         .item-tag-container { margin: 10px 0; padding: 8px; background: #f0fdf4; border-radius: 8px; border: 1px solid #dcfce7; position: relative; z-index: 1001; }
-        .item-tag { display: inline-block; background: #22c55e; color: white; padding: 4px 12px; border-radius: 6px; font-size: 14px; font-weight: bold; margin: 3px; }
+        .item-tag { display: inline-block; background: #22c55e; color: white; padding: 4px 10px; border-radius: 6px; font-size: 14px; font-weight: bold; margin: 3px; }
+
         .photo-stack-container { position: relative; width: 100%; height: 180px; margin: 35px auto 15px; perspective: 1000px; z-index: 100; }
         .stack-photo { position: absolute; width: 120px; height: 120px; object-fit: cover; border: 4px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.2); left: 50%; margin-left: -60px; transition: all 0.6s cubic-bezier(0.165, 0.84, 0.44, 1); cursor: pointer; z-index: 1; }
         .stack-photo.active { transform: scale(1.25) rotate(var(--active-rot, 0deg)) !important; z-index: 500 !important; box-shadow: 0 12px 35px rgba(0,0,0,0.4); }
@@ -58,12 +41,10 @@
         #lightbox { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; justify-content: center; align-items: center; }
         #lightbox img { max-width: 90%; max-height: 90%; border: 5px solid white; border-radius: 5px; }
 
-        @media (max-width: 768px) { 
-            body { flex-direction: column; } 
-            #map { flex: 1; min-height: 35vh; } 
-            #sidebar { flex: none; height: auto; max-height: 65vh; min-height: 60px; padding-bottom: 50px; }
-            #sidebar.is-expanded { flex: 3; height: 65vh; }
-        }
+        .leaflet-popup-content-wrapper { width: 300px !important; }
+        .leaflet-popup-content { width: 280px !important; margin: 15px 10px; }
+
+        @media (max-width: 768px) { body { flex-direction: column; } #map { flex: 1; min-height: 35vh; } #sidebar { flex: none; height: auto; max-height: 65vh; min-height: 60px; padding-bottom: 50px; } #sidebar.is-expanded { flex: 3; height: 65vh; } }
     </style>
 </head>
 <body>
@@ -75,12 +56,10 @@
         <div id="modeView" class="mode-btn mode-active" onclick="setInteractionMode('view')">🔒 鎖定地圖</div>
         <div id="modeEdit" class="mode-btn" onclick="setInteractionMode('edit')">➕ 新增地點</div>
     </div>
-
     <div class="collapse-header" onclick="toggleSidebar()">
         <span id="collapseTitle" style="font-weight:bold; color:#555;">🔽 展開店家輸入表單</span>
         <span class="collapse-icon">🔽</span>
     </div>
-
     <div id="collapsibleContent">
         <div class="form-group" style="background:#fff3cd;">
             <label><b>🔍 地圖篩選範圍</b></label>
@@ -90,7 +69,6 @@
                 <option value="all" selected>顯示所有地點</option>
             </select>
         </div>
-
         <div id="editFormArea" style="opacity: 0.5; pointer-events: none;">
             <div class="form-group">
                 <label><b>1. 店家名稱*</b></label>
@@ -117,13 +95,12 @@
                 <input type="text" id="notes" placeholder="其他備註...">
             </div>
             <div class="form-group">
-                <label><b>4. 上傳照片 (可多張)</b></label>
+                <label><b>4. 上傳照片</b></label>
                 <input type="file" id="photos" accept="image/*" multiple>
             </div>
             <button id="submitBtn" class="main-btn">🚀 送出資料 (提交)</button>
         </div>
     </div>
-    
     <div id="status"></div>
     <input type="hidden" id="lat"><input type="hidden" id="lng">
     <input type="hidden" id="district"><input type="hidden" id="village">
@@ -145,12 +122,36 @@
 
     let cycleTimer = null, resumeTimer = null, currentIdx = 0, markers = {};
 
+    // 🌟 相片主要功能：一律改為點擊放大
     window.photoAction = function(img) {
-        const container = img.parentElement;
-        if (container.querySelectorAll('.stack-photo').length === 1) { document.getElementById('lightboxImg').src = img.src; document.getElementById('lightbox').style.display = 'flex'; return; }
-        if (img.classList.contains('active')) { document.getElementById('lightboxImg').src = img.src; document.getElementById('lightbox').style.display = 'flex'; } 
-        else { stopCycle(); bringToFront(img); clearTimeout(resumeTimer); resumeTimer = setTimeout(() => { startCycle(container); }, 5000); }
+        document.getElementById('lightboxImg').src = img.src;
+        document.getElementById('lightbox').style.display = 'flex';
     };
+
+    // 🌟 按鈕功能：弄亂相片
+    window.scramblePhotos = function(storeId) {
+        stopCycle(); 
+        const container = document.getElementById(`stack-${storeId}`);
+        const photos = container.querySelectorAll('.stack-photo');
+        photos.forEach((p) => {
+            p.classList.remove('active');
+            const rot = (Math.random() * 180) - 90;
+            const tx = (Math.random() * 160) - 80;
+            const ty = (Math.random() * 160) - 80;
+            const scale = 0.8 + (Math.random() * 0.5);
+            p.style.transform = `rotate(${rot}deg) translate(${tx}px, ${ty}px) scale(${scale})`;
+            p.style.zIndex = Math.floor(Math.random() * 100);
+        });
+        clearTimeout(resumeTimer);
+        resumeTimer = setTimeout(() => {
+            photos.forEach((p) => {
+                p.style.transform = `rotate(${p.dataset.tidyRot}deg) translate(${p.dataset.tidyTx}px, ${p.dataset.tidyTy}px) scale(1)`;
+                p.style.zIndex = p.dataset.tidyZ;
+            });
+            startCycle(container);
+        }, 5000);
+    };
+
     function bringToFront(img) { img.parentElement.querySelectorAll('.stack-photo').forEach(p => p.classList.remove('active')); img.classList.add('active'); }
     function stopCycle() { if(cycleTimer) clearInterval(cycleTimer); }
     function startCycle(container) {
@@ -159,6 +160,7 @@
         cycleTimer = setInterval(() => { currentIdx = (currentIdx + 1) % photos.length; bringToFront(photos[currentIdx]); }, 1800);
     }
 
+    // 地圖邏輯
     var map = L.map('map', { zoomControl: false }).setView([24.993, 121.496], 13.5); 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© CARTO' }).addTo(map);
     L.control.zoom({ position: 'topleft' }).addTo(map);
@@ -179,41 +181,28 @@
         document.getElementById('modeEdit').classList.toggle('mode-active', mode === 'edit');
         document.getElementById('editFormArea').style.opacity = (mode === 'edit' ? '1' : '0.4');
         document.getElementById('editFormArea').style.pointerEvents = (mode === 'edit' ? 'auto' : 'none');
-        if(mode === 'edit') {
-            toggleSidebar(true); // 強制展開
-            setTimeout(() => { document.getElementById('sidebar').scrollTo({ top: 100, behavior: 'smooth' }); }, 300);
-        }
+        if(mode === 'edit') toggleSidebar(true);
         if(mode === 'view' && marker) map.removeLayer(marker);
     };
-
     window.toggleSidebar = (forceExpand = false) => {
-        const s = document.getElementById('sidebar');
-        const title = document.getElementById('collapseTitle');
-        if(forceExpand || s.classList.contains('is-collapsed')) {
-            s.classList.remove('is-collapsed'); s.classList.add('is-expanded');
-            title.innerText = "🔼 縮小店家輸入表單";
-        } else {
-            s.classList.add('is-collapsed'); s.classList.remove('is-expanded');
-            title.innerText = "🔽 展開店家輸入表單";
-        }
+        const s = document.getElementById('sidebar'); const title = document.getElementById('collapseTitle');
+        if(forceExpand || s.classList.contains('is-collapsed')) { s.classList.remove('is-collapsed'); s.classList.add('is-expanded'); title.innerText = "🔼 縮小店家輸入表單"; } 
+        else { s.classList.add('is-collapsed'); s.classList.remove('is-expanded'); title.innerText = "🔽 展開店家輸入表單"; }
     };
 
     async function loadExistingStores() {
         map.eachLayer(l => { if(l instanceof L.Marker && l !== marker) map.removeLayer(l); });
         const filter = document.getElementById('mapLayerFilter').value;
-        const now = new Date();
         const snap = await getDocs(query(collection(db, "friendly_stores"), orderBy("createdAt", "desc")));
-        
         snap.forEach(docSnap => {
             const d = docSnap.data(), id = docSnap.id, jsDate = d.createdAt?.toDate() || new Date();
             let show = (filter === 'all');
-            if(filter === 'today' && jsDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate())) show = true;
-            if(filter === 'month' && jsDate >= new Date(now.getFullYear(), now.getMonth(), 1)) show = true;
+            if(filter === 'today' && jsDate >= new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())) show = true;
+            if(filter === 'month' && jsDate >= new Date(new Date().getFullYear(), new Date().getMonth(), 1)) show = true;
 
             if (show && d.lat && d.lng) {
                 const navUrl = `http://googleusercontent.com/maps.google.com/?q=${d.lat},${d.lng}&travelmode=motorcycle`;
                 let items = []; if(d.tissues) items.push('放散裝面紙'); if(d.tissueBox) items.push('可放面紙盒'); if(d.banners) items.push('可掛布條'); if(d.boards) items.push('可掛看板');
-                let itemsHtml = items.length > 0 ? `<div class="item-tag-container">${items.map(i => `<span class="item-tag">${i}</span>`).join('')}</div>` : '';
                 let galleryHtml = `<div class="photo-stack-container" id="stack-${id}">`;
                 if (d.photos && d.photos.length > 0) {
                     d.photos.forEach((url, idx) => {
@@ -222,24 +211,20 @@
                         const scatterRadius = (d.photos.length > 4 ? 45 : 30);
                         const tx = Math.cos(angle * Math.PI / 180) * scatterRadius;
                         const ty = Math.sin(angle * Math.PI / 180) * scatterRadius;
-                        galleryHtml += `<img src="${url}" class="stack-photo" style="transform: rotate(${rot}deg) translate(${tx}px, ${ty}px); --active-rot: ${(d.photos.length==1?rot:0)}deg;" onclick="photoAction(this)">`;
+                        galleryHtml += `<img src="${url}" class="stack-photo" data-tidy-rot="${rot}" data-tidy-tx="${tx}" data-tidy-ty="${ty}" data-tidy-z="${idx}" style="transform: rotate(${rot}deg) translate(${tx}px, ${ty}px); z-index: ${idx}; --active-rot: ${(d.photos.length==1?rot:0)}deg;" onclick="photoAction(this)">`;
                     });
                 } else { galleryHtml += `<div style="padding-top:60px; color:#999;">(無照片)</div>`; }
                 galleryHtml += `</div>`;
-                let popupHtml = `<div style="text-align:center; min-width:260px;"><b style="font-size:18px; color:#333; position:relative; z-index:1002;">${d.storeName}</b><br><small>${d.village}</small><br>${itemsHtml}${galleryHtml}<div style="margin-top:10px;"><a href="${navUrl}" target="_blank" class="nav-link">🛵 導航</a></div></div>`;
+                
+                let popupHtml = `<div style="text-align:center; min-width:260px;"><b style="font-size:18px; color:#333; position:relative; z-index:1002;">${d.storeName}</b><br><small>${d.village}</small><br><div class="item-tag-container">${items.map(i=>`<span class="item-tag">${i}</span>`).join('')}</div>${galleryHtml}<div style="margin-top:10px; display:flex; justify-content:center; gap:5px;"><a href="${navUrl}" target="_blank" class="popup-btn nav-link">🛵 導航</a><button class="popup-btn scramble-btn" onclick="scramblePhotos('${id}')">🌀 弄亂</button></div></div>`;
                 const m = L.marker([d.lat, d.lng]).addTo(map).bindPopup(popupHtml);
                 m.on('popupopen', () => { currentIdx = 0; startCycle(document.getElementById(`stack-${id}`)); });
                 m.on('popupclose', () => { stopCycle(); clearTimeout(resumeTimer); });
                 markers[id] = m;
             }
         });
-
-        const params = new URLSearchParams(window.location.search);
-        const jumpId = params.get('id');
-        if(jumpId && markers[jumpId]) {
-            const m = markers[jumpId]; map.setView(m.getLatLng(), 18);
-            setTimeout(() => m.openPopup(), 500);
-        }
+        const jumpId = new URLSearchParams(window.location.search).get('id');
+        if(jumpId && markers[jumpId]) { const m = markers[jumpId]; map.setView(m.getLatLng(), 18); setTimeout(() => m.openPopup(), 500); }
     }
 
     async function autoDetectVillage(lat, lng) {
