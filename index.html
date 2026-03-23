@@ -13,21 +13,20 @@
         #sidebar { flex: 1; padding: 20px; overflow-y: auto; background: #fff; box-shadow: -2px 0 5px rgba(0,0,0,0.1); z-index: 1000; min-width: 350px; }
         .form-group { margin-bottom: 15px; background: #f8f9fa; padding: 12px; border-radius: 10px; border: 1px solid #eee; }
         input[type="text"] { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; }
-        .main-btn { padding: 14px; background: #28a745; color: white; border: none; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; border-radius: 8px; margin-top: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .action-btn { padding: 8px 10px; background: #1a73e8; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; flex: 1; transition: 0.2s; }
-        .action-btn:active { background: #1557b0; transform: scale(0.98); }
+        .main-btn { padding: 14px; background: #28a745; color: white; border: none; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; border-radius: 8px; margin-top: 10px; }
+        .action-btn { padding: 8px 10px; background: #1a73e8; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; flex: 1; }
         .flex-row { display: flex; gap: 8px; margin-top: 5px; }
         .auto-fill-hint { font-size: 14px; font-weight: bold; margin-top: 8px; display: block; }
         
-        /* 質感導航按鈕設計 */
+        /* 導航按鈕美化 */
         .nav-link { 
             display: inline-flex; align-items: center; justify-content: center;
-            padding: 10px 20px; background: #1a73e8; color: white !important; 
-            text-decoration: none !important; border-radius: 25px; 
-            font-weight: bold; font-size: 14px; margin-top: 10px;
-            box-shadow: 0 4px 6px rgba(26, 115, 232, 0.2); transition: 0.3s;
+            padding: 8px 15px; background: #1a73e8; color: white !important; 
+            text-decoration: none !important; border-radius: 20px; 
+            font-weight: bold; font-size: 13px; margin-top: 10px;
         }
-        .nav-link:hover { background: #1557b0; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        /* 彈出視窗照片樣式 */
+        .popup-img { width: 100%; max-width: 200px; border-radius: 5px; margin-top: 10px; border: 1px solid #ddd; cursor: pointer; }
 
         @media (max-width: 768px) { body { flex-direction: column; } #map { flex: 1; min-height: 40vh; } #sidebar { flex: 1; min-height: 60vh; } }
     </style>
@@ -37,9 +36,9 @@
 <div id="map"></div>
 
 <div id="sidebar">
-    <h2 style="margin-top: 0; color: #333;">📍 新增友善店家</h2>
+    <h2 style="margin-top: 0;">📍 新增友善店家</h2>
     
-    <div class="form-group" style="background:#fff3cd; border-color:#ffeeba;">
+    <div class="form-group" style="background:#fff3cd;">
         <label><b>🔍 地圖顯示範圍</b></label>
         <select id="mapLayerFilter" style="width:100%; padding:10px; margin-top:5px; border-radius:6px; border:1px solid #ddd;">
             <option value="today">僅顯示今天新增 (預設)</option>
@@ -60,7 +59,7 @@
             <button type="button" id="btnExif" class="action-btn">🖼️ 抓照片 GPS</button>
         </div>
         <div class="flex-row" style="margin-top: 8px;">
-            <input type="text" id="address" placeholder="或輸入地址...">
+            <input type="text" id="address" placeholder="輸入地址...">
             <button type="button" id="btnAddress" class="action-btn" style="max-width:80px;">🔍 搜尋</button>
         </div>
         <span id="geoStatus" class="auto-fill-hint" style="color:#d9534f;">尚未定位</span>
@@ -81,7 +80,7 @@
 
     <div class="form-group">
         <label><b>4. 上傳現場照片 (可多張)</b></label>
-        <input type="file" id="photos" accept="image/*" multiple style="margin-top:5px;">
+        <input type="file" id="photos" accept="image/*" multiple>
     </div>
 
     <button id="submitBtn" class="main-btn">🚀 送出資料</button>
@@ -107,11 +106,12 @@
     const db = getFirestore(app);
 
     const ChiefManager = {
-        data: {"中原里":{district:"漳和",name:"陳慧書",phone:"0953-869616",gender:"F"},"連和里":{district:"漳和",name:"朱榮凱",phone:"0987-709723",gender:"M"},"連城里":{district:"漳和",name:"林仁凱",phone:"0921-815102",gender:"M"},"力行里":{district:"漳和",name:"周聰明",phone:"0935-922970",gender:"M"},"正行里":{district:"漳和",name:"陳盈君",phone:"0953-409130",gender:"F"},"德行里":{district:"漳和",name:"陳靜宜",phone:"0952-808977",gender:"F"},"枋寮里":{district:"漳和",name:"羅仕滄",phone:"0936-175166",gender:"M"},"漳和里":{district:"漳和",name:"劉建盛",phone:"0933-068655",gender:"M"},"廟美里":{district:"漳和",name:"鄭鈞瑋",phone:"0953-813913",gender:"M"},"福真里":{district:"漳和",name:"蔡昭發",phone:"0932-033585",gender:"M"},"福善里":{district:"漳和",name:"陳愷松",phone:"0936-212589",gender:"M"},"福美里":{district:"漳和",name:"梁廸文",phone:"0933-566024",gender:"M"},"福祥里":{district:"漳和",name:"張昌期",phone:"0937-096775",gender:"M"},"瓦磘里":{district:"漳和",name:"林綺芳",phone:"0910-132806",gender:"F"},"福和里":{district:"漳和",name:"簡健翔",phone:"0981-254789",gender:"M"},"佳和里":{district:"漳和",name:"陳得福",phone:"0933-223414",gender:"M"},"新南里":{district:"漳和",name:"申文博",phone:"0932-569521",gender:"M"},"南山里":{district:"漳和",name:"紀忠和",phone:"0928-582888",gender:"M"},"平河里":{district:"漳和",name:"黃湘雲",phone:"0958-090226",gender:"F"},"信和里":{district:"漳和",name:"許泰銘",phone:"0921-191193",gender:"M"},"仁和里":{district:"漳和",name:"林達",phone:"0988-373812",gender:"M"},"中正里":{district:"漳和",name:"李銀花",phone:"0921-888677",gender:"F"},"建和里":{district:"漳和",name:"江曉佩",phone:"0933-133178",gender:"F"},"中山里":{district:"漳和",name:"江雪嬌",phone:"0936-074706",gender:"F"},"碧河里":{district:"漳和",name:"賴清華",phone:"0917-262469",gender:"M"},"正南里":{district:"南勢",name:"游滿堂",phone:"0922-701258",gender:"M"},"頂南里":{district:"南勢",name:"謝森儒",phone:"0919-266119",gender:"M"},"華新里":{district:"南勢",name:"楊錦煌",phone:"0961-053836",gender:"M"},"東南里":{district:"南勢",name:"李武雄",phone:"0935-936381",gender:"M"},"華南里":{district:"南勢",name:"林平發",phone:"0935-366668",gender:"M"},"忠孝里":{district:"南勢",name:"李柏雲",phone:"0935-146333",gender:"F"},"崇南里":{district:"南勢",name:"林秀貞",phone:"0935-209479",gender:"F"},"興南里":{district:"南勢",name:"呂明志",phone:"0936-231394",gender:"M"},"景南里":{district:"南勢",name:"胡宇辰",phone:"0911-031888",gender:"F"},"景本里":{district:"南勢",name:"張林秀麗",phone:"0937-787801",gender:"F"},"橫路里":{district:"南勢",name:"呂星輝",phone:"0932-336215",gender:"M"},"內南里":{district:"南勢",name:"曾金禧",phone:"0933-735688",gender:"M"},"壽南里":{district:"南勢",name:"呂武雄",phone:"0932-237469",gender:"M"},"福南里":{district:"南勢",name:"邱淑芬",phone:"0920-859710",gender:"F"},"外南里":{district:"南勢",name:"連顯達",phone:"0931-136766",gender:"M"},"中興里":{district:"南勢",name:"游志鴻",phone:"0952-221166",gender:"M"},"吉興里":{district:"南勢",name:"陳成功",phone:"0978-992728",gender:"M"},"復興里":{district:"南勢",name:"尤敏玉",phone:"0975-778062",gender:"F"},"和興里":{district:"南勢",name:"蔡璧如",phone:"0919-228739",gender:"F"},"景平里":{district:"南勢",name:"游一龍",phone:"0988-385007",gender:"M"},"景新里":{district:"南勢",name:"楊惇富",phone:"0905-108507",gender:"M"},"景福里":{district:"南勢",name:"王坤茂",phone:"0932-124959",gender:"M"},"景安里":{district:"南勢",name:"劉浩偉",phone:"0905-108297",gender:"M"},"景文里":{district:"南勢",name:"林東銘",phone:"0928-122889",gender:"M"},"錦和里":{district:"員山",name:"林進明",phone:"0935-255031",gender:"M"},"錦昌里":{district:"員山",name:"邱尾玟",phone:"0927-065332",gender:"F"},"灰磘里":{district:"員山",name:"林鑫宏",phone:"0975-115156",gender:"M"},"積穗里":{district:"員山",name:"陳致廷",phone:"0989-094762",gender:"M"},"民享里":{district:"員山",name:"簡美蓮",phone:"0983-521630",gender:"F"},"員山里":{district:"員山",name:"藍國鐘",phone:"0910-211472",gender:"M"},"嘉穗里":{district:"員山",name:"吳有參",phone:"0938-256666",gender:"M"},"文元里":{district:"員山",name:"吳欣怡",phone:"0952-305508",gender:"F"},"嘉新里":{district:"員山",name:"林后福",phone:"0939-265560",gender:"M"},"民安里":{district:"員山",name:"張金鳳",phone:"0952-374586",gender:"F"},"安穗里":{district:"員山",name:"周靜萱",phone:"0931-285110",gender:"F"},"瑞穗里":{district:"員山",name:"陳美華",phone:"0910-220536",gender:"F"},"明穗里":{district:"員山",name:"何韋翰",phone:"0989-101168",gender:"M"},"清穗里":{district:"員山",name:"王金定",phone:"0935-209055",gender:"M"},"自強里":{district:"員山",name:"張興順",phone:"0928-247696",gender:"M"},"德穗里":{district:"員山",name:"詹文定",phone:"0932-084360",gender:"M"},"民生里":{district:"員山",name:"朱朝鶯",phone:"0912-823668",gender:"F"},"國光里":{district:"員山",name:"蘇俊琦",phone:"0952-632301",gender:"M"},"壽德里":{district:"員山",name:"張宗正",phone:"0926-719215",gender:"M"},"明德里":{district:"員山",name:"羅健容",phone:"0937-428555",gender:"M"},"錦中里":{district:"員山",name:"范榮豐",phone:"0935-579736",gender:"M"},"錦盛里":{district:"員山",name:"林建全",phone:"0919-918959",gender:"M"},"民有里":{district:"員山",name:"謝清炎",phone:"0937-322734",gender:"M"},"員富里":{district:"員山",name:"蔡宗霖",phone:"0937-530014",gender:"M"},"嘉慶里":{district:"員山",name:"吳永華",phone:"0936-450488",gender:"M"},"冠穗里":{district:"員山",name:"郭祥億",phone:"0912-833110",gender:"M"},"國華里":{district:"員山",name:"童宥翔",phone:"0952-814458",gender:"M"},"宜安里":{district:"秀安",name:"陳素貞",phone:"0939-818527",gender:"F"},"安樂里":{district:"秀安",name:"呂福來",phone:"0939-273205",gender:"M"},"安和里":{district:"秀安",name:"吳金",phone:"0989-065366",gender:"M"},"安順里":{district:"秀安",name:"王雪秋",phone:"0933-830269",gender:"F"},"安平里":{district:"秀安",name:"林芳飾",phone:"0978-635621",gender:"M"},"中安里":{district:"秀安",name:"李謙國",phone:"0939-778896",gender:"M"},"泰安里":{district:"秀安",name:"林美惠",phone:"0987-792713",gender:"F"},"秀山里":{district:"秀安",name:"林秋宇",phone:"0935-699363",gender:"M"},"秀成里":{district:"秀安",name:"吳金松",phone:"0923-299399",gender:"M"},"秀義里":{district:"秀安",name:"張文亮",phone:"0936-119594",gender:"M"},"秀福里":{district:"秀安",name:"林江西",phone:"0933-891482",gender:"M"},"秀景里":{district:"秀安",name:"李淙河",phone:"0933-222617",gender:"M"},"秀明里":{district:"秀安",name:"施義男",phone:"0935-515373",gender:"M"},"秀峰里":{district:"秀安",name:"周存炎",phone:"0988-950897",gender:"M"},"秀士里":{district:"秀安",name:"洪易松",phone:"0958-333187",gender:"M"},"秀水里":{district:"秀安",name:"陳炳男",phone:"0912-034916",gender:"M"},"秀仁里":{district:"秀安",name:"陳慶章",phone:"0918-565598",gender:"M"}},
+        data: {"中原里":{district:"漳和",name:"陳慧書",phone:"0953-869616",gender:"F"},"連和里":{district:"漳和",name:"朱榮凱",phone:"0987-709723",gender:"M"},"連城里":{district:"漳和",name:"林仁凱",phone:"0921-815102",gender:"M"},"力行里":{district:"漳和",name:"周聰明",phone:"0935-922970",gender:"M"},"正行里":{district:"漳和",name:"陳盈君",phone:"0953-409130",gender:"F"},"德行里":{district:"漳和",name:"陳靜宜",phone:"0952-808977",gender:"F"},"枋寮里":{district:"漳和",name:"羅仕滄",phone:"0936-175166",gender:"M"},"漳和里":{district:"漳和",name:"劉建盛",phone:"0933-068655",gender:"M"},"廟美里":{district:"漳和",name:"鄭鈞瑋",phone:"0953-813913",gender:"M"},"福真里":{district:"漳和",name:"蔡昭發",phone:"0932-033585",gender:"M"},"福善里":{district:"漳和",name:"陳愷松",phone:"0936-212589",gender:"M"},"福美里":{district:"漳和",name:"梁廸文",phone:"0933-566024",gender:"M"},"福祥里":{district:"漳和",name:"張昌期",phone:"0937-096775",gender:"M"},"瓦磘里":{district:"漳和",name:"林綺芳",phone:"0910-132806",gender:"F"},"福和里":{district:"漳和",name:"簡健翔",phone:"0981-254789",gender:"M"},"佳和里":{district:"漳和",name:"陳得福",phone:"0933-223414",gender:"M"},"新南里":{district:"漳和",name:"申文博",phone:"0932-569521",gender:"M"},"南山里":{district:"漳和",name:"紀忠和",phone:"0928-582888",gender:"M"},"平河里":{district:"漳和",name:"黃湘雲",phone:"0958-090226",gender:"F"},"信和里":{district:"漳和",name:"許泰銘",phone:"0921-191193",gender:"M"},"仁和里":{district:"漳和",name:"林達",phone:"0988-373812",gender:"M"},"中正里":{district:"漳和",name:"李銀花",phone:"0921-888677",gender:"F"},"建和里":{district:"漳和",name:"江曉佩",phone:"0933-133178",gender:"F"},"中山里":{district:"漳和",name:"江雪嬌",phone:"0936-074706",gender:"F"},"碧河里":{district:"漳和",name:"賴清華",phone:"0917-262469",gender:"M"},"正南里":{district:"南勢",name:"游滿堂",phone:"0922-701258",gender:"M"},"頂南里":{district:"南勢",name:"謝森儒",phone:"0919-266119",gender:"M"},"華新里":{district:"南勢",name:"楊錦煌",phone:"0961-053836",gender:"M"},"東南里":{district:"南勢",name:"李武雄",phone:"0935-936381",gender:"M"},"華南里":{district:"南勢",name:"林平發",phone:"0935-366668",gender:"M"},"忠孝里":{district:"南勢",name:"李柏雲",phone:"0935-146333",gender:"F"},"崇南里":{district:"南勢",name:"林秀貞",phone:"0935-209479",gender:"F"},"興南里":{district:"南勢",name:"呂明志",phone:"0936-231394",gender:"M"},"景南里":{district:"南勢",name:"胡宇辰",phone:"0911-031888",gender:"F"},"景本里":{district:"南勢",name:"張林秀麗",phone:"0937-787801",gender:"F"},"橫路里":{district:"南勢",name:"呂星輝",phone:"0932-336215",gender:"M"},"內南里":{district:"南勢",name:"曾金禧",phone:"0933-735688",gender:"M"},"壽南里":{district:"南勢",name:"呂武雄",phone:"0932-237469",gender:"M"},"福南里":{district:"南勢",name:"邱淑芬",phone:"0920-859710",gender:"F"},"外南里":{district:"南勢",name:"連顯達",phone:"0931-136766",gender:"M"},"中興里":{district:"南勢",name:"游志鴻",phone:"0952-221166",gender:"M"},"吉興里":{district:"南勢",name:"陳成功",phone:"0978-992728",gender:"M"},"復興里":{district:"南勢",name:"尤敏玉",phone:"0975-778062",gender:"F"},"和興里":{district:"南勢",name:"蔡璧如",phone:"0919-228739",gender:"F"},"景平里":{district:"南勢",name:"游一龍",phone:"0988-385007",gender:"M"},"景新里":{district:"南勢",name:"楊惇富",phone:"0905-108507",gender:"M"},"景福里":{district:"南勢",name:"王坤茂",phone:"0932-124959",gender:"M"},"景安里":{district:"南勢",name:"劉浩偉",phone:"0905-108297",gender:"M"},"景文里":{district:"南勢",name:"林東銘",phone:"0928-122889",gender:"M"},"錦和里":{district:"員山",name:"林進明",phone:"0935-255031",gender:"M"},"錦昌里":{district:"員山",name:"邱尾玟",phone:"0927-065332",gender:"F"},"灰磘里":{district:"員山",name:"林鑫宏",phone:"0975-115156",gender:"M"},"積穗里":{district:"員山",name:"陳致廷",phone:"0989-094762",gender:"M"},"民享里":{district:"員山",name:"簡美蓮",phone:"0983-521630",gender:"F"},"員山里":{district:"員山",name:"藍國鐘",phone:"0910-211472",gender:"M"},"嘉穗里":{district:"員山",name:"吳有參",phone:"0938-256666",gender:"M"},"文元里":{district:"員山",name:"吳欣怡",phone:"0952-305508",gender:"F"},"嘉新里":{district:"員山",name:"林后福",phone:"0939-265560",margin:"M"},"民安里":{district:"員山",name:"張金鳳",phone:"0952-374586",gender:"F"},"安穗里":{district:"員山",name:"周靜萱",phone:"0931-285110",gender:"F"},"瑞穗里":{district:"員山",name:"陳美華",phone:"0910-220536",gender:"F"},"明穗里":{district:"員山",name:"何韋翰",phone:"0989-101168",gender:"M"},"清穗里":{district:"員山",name:"王金定",phone:"0935-209055",gender:"M"},"自強里":{district:"員山",name:"張興順",phone:"0928-247696",gender:"M"},"德穗里":{district:"員山",name:"詹文定",phone:"0932-084360",gender:"M"},"民生里":{district:"員山",name:"朱朝鶯",phone:"0912-823668",gender:"F"},"國光里":{district:"員山",name:"蘇俊琦",phone:"0952-632301",gender:"M"},"壽德里":{district:"員山",name:"張宗正",phone:"0926-719215",gender:"M"},"明德里":{district:"員山",name:"羅健容",phone:"0937-428555",gender:"M"},"錦中里":{district:"員山",name:"范榮豐",phone:"0935-579736",gender:"M"},"錦盛里":{district:"員山",name:"林建全",phone:"0919-918959",gender:"M"},"民有里":{district:"員山",name:"謝清炎",phone:"0937-322734",gender:"M"},"員富里":{district:"員山",name:"蔡宗霖",phone:"0937-530014",gender:"M"},"嘉慶里":{district:"員山",name:"吳永華",phone:"0936-450488",gender:"M"},"冠穗里":{district:"員山",name:"郭祥億",phone:"0912-833110",gender:"M"},"國華里":{district:"員山",name:"童宥翔",phone:"0952-814458",gender:"M"},"宜安里":{district:"秀安",name:"陳素貞",phone:"0939-818527",gender:"F"},"安樂里":{district:"秀安",name:"呂福來",phone:"0939-273205",gender:"M"},"安和里":{district:"秀安",name:"吳金",phone:"0989-065366",gender:"M"},"安順里":{district:"秀安",name:"王雪秋",phone:"0933-830269",gender:"F"},"安平里":{district:"秀安",name:"林芳飾",phone:"0978-635621",gender:"M"},"中安里":{district:"秀安",name:"李謙國",phone:"0939-778896",gender:"M"},"泰安里":{district:"秀安",name:"林美惠",phone:"0987-792713",gender:"F"},"秀山里":{district:"秀安",name:"林秋宇",phone:"0935-699363",gender:"M"},"秀成里":{district:"秀安",name:"吳金松",phone:"0923-299399",gender:"M"},"秀義里":{district:"秀安",name:"張文亮",phone:"0936-119594",gender:"M"},"秀福里":{district:"秀安",name:"林江西",phone:"0933-891482",gender:"M"},"秀景里":{district:"秀安",name:"李淙河",phone:"0933-222617",gender:"M"},"秀明里":{district:"秀安",name:"施義男",phone:"0935-515373",gender:"M"},"秀峰里":{district:"秀安",name:"周存炎",phone:"0988-950897",gender:"M"},"秀士里":{district:"秀安",name:"洪易松",phone:"0958-333187",gender:"M"},"秀水里":{district:"秀安",name:"陳炳男",phone:"0912-034916",gender:"M"},"秀仁里":{district:"秀安",name:"陳慶章",phone:"0918-565598",gender:"M"}},
         getInfo: function(v) { return this.data[v] || { district: "未知", name: "待查", phone: "無", gender: "M" }; }
     };
 
-    var map = L.map('map').setView([24.993, 121.496], 14);
+    // 🌟 地圖起始中心設定在中和區公所 [24.993, 121.496]
+    var map = L.map('map').setView([24.993, 121.496], 15);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© CARTO' }).addTo(map);
     var marker;
 
@@ -158,65 +158,28 @@
         const filter = document.getElementById('mapLayerFilter').value;
         const now = new Date();
         const snap = await getDocs(query(collection(db, "friendly_stores"), orderBy("createdAt", "desc")));
+        
         snap.forEach(docSnap => {
             const d = docSnap.data();
             const jsDate = d.createdAt?.toDate() || new Date();
             let show = (filter === 'all');
             if(filter === 'today' && jsDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate())) show = true;
             if(filter === 'month' && jsDate >= new Date(now.getFullYear(), now.getMonth(), 1)) show = true;
+
             if (show && d.lat && d.lng) {
                 const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}&travelmode=motorcycle`;
-                let popupHtml = `<div style="text-align:center;"><b style="font-size:15px;">${d.storeName}</b><br><small>${d.village}</small><br><a href="${navUrl}" target="_blank" class="nav-link">🏍️ 機車導航</a></div>`;
+                let popupHtml = `<div style="text-align:center;"><b style="font-size:16px;">${d.storeName}</b><br><small>${d.village}</small><br>`;
+                
+                // 🌟 彈出視窗顯示照片
+                if (d.photos && d.photos.length > 0) {
+                    popupHtml += `<a href="${d.photos[0]}" target="_blank"><img src="${d.photos[0]}" class="popup-img"></a><br>`;
+                }
+                
+                popupHtml += `<a href="${navUrl}" target="_blank" class="nav-link">🛵 導航</a></div>`;
                 L.marker([d.lat, d.lng]).addTo(map).bindPopup(popupHtml);
             }
         });
     }
-
-    // 📍 抓照片 GPS (視覺強化版)
-    document.getElementById('btnExif').onclick = async () => {
-        const files = document.getElementById('photos').files;
-        const btn = document.getElementById('btnExif');
-        const statusText = document.getElementById('status');
-        if (files.length === 0) return alert("請先選取現場拍的照片！");
-        
-        const originalText = btn.innerText;
-        btn.innerText = "🔍 掃描中...";
-        btn.disabled = true;
-        let found = false;
-
-        for (let i = 0; i < files.length; i++) {
-            statusText.innerText = `正在檢查第 ${i+1} / ${files.length} 張照片...`;
-            await new Promise((resolve) => {
-                EXIF.getData(files[i], function() {
-                    let latArray = EXIF.getTag(this, "GPSLatitude");
-                    let lngArray = EXIF.getTag(this, "GPSLongitude");
-                    let latRef = EXIF.getTag(this, "GPSLatitudeRef");
-                    let lngRef = EXIF.getTag(this, "GPSLongitudeRef");
-
-                    if (latArray && lngArray) {
-                        let lat = latArray[0] + latArray[1]/60 + latArray[2]/3600;
-                        let lng = lngArray[0] + lngArray[1]/60 + lngArray[2]/3600;
-                        if (latRef === "S") lat = lat * -1;
-                        if (lngRef === "W") lng = lng * -1;
-                        updateLocation(lat, lng);
-                        found = true;
-                    }
-                    resolve();
-                });
-            });
-            if (found) break;
-        }
-
-        if (found) {
-            statusText.innerText = "✅ 已從照片成功獲取位置！";
-            statusText.style.color = "green";
-        } else {
-            alert("❌ 找不到定位資訊！\n\n這通常是因為照片被 LINE 壓縮過，或是相機沒開定位標籤功能。");
-            statusText.innerText = "";
-        }
-        btn.innerText = originalText;
-        btn.disabled = false;
-    };
 
     document.getElementById('mapLayerFilter').addEventListener('change', loadExistingStores);
     map.on('click', e => updateLocation(e.latlng.lat, e.latlng.lng));
@@ -248,7 +211,7 @@
         const btn = document.getElementById('submitBtn');
         const storeName = document.getElementById('storeName').value;
         if(!storeName || !document.getElementById('lat').value) return alert("請填寫店名並定位！");
-        btn.disabled = true; document.getElementById('status').innerText = "上傳中...";
+        btn.disabled = true; document.getElementById('status').innerText = "處理中...";
         try {
             let urls = [];
             const files = document.getElementById('photos').files;
