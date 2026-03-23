@@ -14,9 +14,11 @@
         th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; vertical-align: middle; }
         th { background: #007bff; color: white; position: sticky; top: 0; }
         .tag { display: inline-block; background: #28a745; color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; margin: 2px; }
-        .nav-btn { display: inline-flex; align-items: center; padding: 6px 14px; background: #1a73e8; color: white !important; border-radius: 20px; text-decoration: none; font-size: 12px; font-weight: bold; }
-        .edit-btn { background: #ffc107; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-left: 5px; }
-        .del-btn { background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-left: 5px; }
+        .btn-link { display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 20px; text-decoration: none; font-size: 12px; font-weight: bold; margin: 2px; color: white !important; cursor: pointer; border: none; }
+        .loc-btn { background: #22c55e; } /* 地圖定位按鈕顏色 */
+        .nav-btn { background: #1a73e8; }
+        .edit-btn { background: #ffc107; color: #333 !important; }
+        .del-btn { background: #dc3545; }
         .chief-tag { display: inline-block; padding: 4px 12px; border-radius: 20px; border: 1px solid #ddd; font-weight: bold; font-size: 13px; }
         .chief-female { background-color: #ffeef2; border-color: #ffc0cb; color: #d63384; } 
         .chief-male { background-color: #f0f7ff; border-color: #b3d7ff; color: #007bff; }
@@ -61,21 +63,12 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getFirestore, collection, getDocs, orderBy, query, updateDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAI2OmA4VUUes3psK5cYJL-xqG_UVxv8iU",
-      authDomain: "friendly-stores.firebaseapp.com",
-      databaseURL: "https://friendly-stores-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "friendly-stores",
-      storageBucket: "friendly-stores.firebasestorage.app",
-      messagingSenderId: "251220478172",
-      appId: "1:251220478172:web:34736127826b569d3a8c19"
-    };
-
+    const firebaseConfig = { apiKey: "AIzaSyAI2OmA4VUUes3psK5cYJL-xqG_UVxv8iU", authDomain: "friendly-stores.firebaseapp.com", databaseURL: "https://friendly-stores-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "friendly-stores", storageBucket: "friendly-stores.firebasestorage.app", messagingSenderId: "251220478172", appId: "1:251220478172:web:34736127826b569d3a8c19" };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     let allData = [];
 
-    const distMap = {"漳和":["中原里","連和里","連城里","力行里","正行里","德行里","枋寮里","漳和里","廟美里","福真里","福善里","福美里","福祥里","瓦磘里","福和里","佳和里","新南里","南山里","平河里","信和里","仁和里","中正里","建和里","中山里","碧河里"],"南勢":["正南里","頂南里","華新里","東南里","華南里","忠孝里","崇南里","興南里","景南里","景本里","橫路里","內南里","壽南里","福南里","外南里","中興里","吉興里","復興里","和興里","景平里","景新里","景福里","景安里","景文里"],"員山":["錦和里","錦昌里","灰磘里","積穗里","民享里","員山里","嘉穗里","文元里","嘉新里","民安里","安穗里","瑞穗里","明穗里","清穗里","自強里","德穗里","民生里","國光里","壽德里","明德里","錦中里","錦盛里","民有里","員富里","嘉慶里","冠穗里","國華里"],"秀安":["宜安里","安樂里","安和里","安順里","安平里","中安里","泰安里","秀山里","秀成里","秀義里","秀福里","秀景里","秀明里","秀峰里","秀士里","秀水里","秀仁里"]};
+    const distMap = {"漳和":["中原里","連和里","連城里","力行里","正行里","德行里","枋寮里","漳和里","廟美里","福真里","福善里","福美里","福祥里","瓦磘里","福和里","佳和里","新南里","南山里","平河里","信和里","仁和里","中正里","建和里","中山里","碧河里"],"南勢":["正南里","頂南里","華新里","東南里","華南里","忠孝里","崇南里","興南里","景南里","景本里","橫路里","內南里","壽南里","福南里","外南里","中興里","吉興里","復興里","和興里","景平里","景新里","景福里","景安里","景文里"],"員山":["錦和里","錦昌里","灰隱里","積穗里","民享里","員山里","嘉穗里","文元里","嘉新里","民安里","安穗里","瑞穗里","明穗里","清穗里","自強里","德穗里","民生里","國光里","壽德里","明德里","錦中里","錦盛里","民有里","員富里","嘉慶里","冠穗里","國華里"],"秀安":["宜安里","安樂里","安和里","安順里","安平里","中安里","泰安里","秀山里","秀成里","秀義里","秀福里","秀景里","秀明里","秀峰里","秀士里","秀水里","秀仁里"]};
 
     window.updateVillageFilter = () => {
         const d = document.getElementById('distFilter').value;
@@ -109,8 +102,6 @@
             let items = []; if(x.tissues) items.push('散裝面紙'); if(x.tissueBox) items.push('面紙盒'); if(x.banners) items.push('布條'); if(x.boards) items.push('看板');
             const navUrl = `http://googleusercontent.com/maps.google.com/?q=${x.lat},${x.lng}&travelmode=motorcycle`;
             const chiefClass = (x.chiefEmoji === "👩‍💼") ? "chief-female" : "chief-male";
-            
-            // 🌟 列表也完整列出縮圖
             let photosHtml = (x.photos || []).map(p => `<a href="${p}" target="_blank"><img src="${p}" class="photo-thumb"></a>`).join('');
 
             list.innerHTML += `<tr>
@@ -120,9 +111,10 @@
                 <td>${items.map(i=>`<span class="tag">${i}</span>`).join('')}</td>
                 <td>${photosHtml}</td>
                 <td>
-                    <a href="${navUrl}" target="_blank" class="nav-btn">🛵 導航</a>
-                    <button class="edit-btn" onclick="openEdit('${x.id}')">修改</button>
-                    <button class="del-btn" onclick="delStore('${x.id}')">刪除</button>
+                    <a href="index.html?id=${x.id}" class="btn-link loc-btn">🌍 定位</a>
+                    <a href="${navUrl}" target="_blank" class="btn-link nav-btn">🛵 導航</a>
+                    <button class="btn-link edit-btn" onclick="openEdit('${x.id}')">修改</button>
+                    <button class="btn-link del-btn" onclick="delStore('${x.id}')">刪除</button>
                 </td>
             </tr>`;
         });
@@ -131,16 +123,11 @@
 
     window.openEdit = (id) => {
         const x = allData.find(d => d.id === id);
-        document.getElementById('editId').value = id;
-        document.getElementById('editName').value = x.storeName;
-        document.getElementById('editAddr').value = x.address || '';
-        document.getElementById('editLat').value = x.lat;
-        document.getElementById('editLng').value = x.lng;
-        document.getElementById('editTissues').checked = x.tissues === 'V';
-        document.getElementById('editBox').checked = x.tissueBox === 'V';
-        document.getElementById('editBanners').checked = x.banners === 'V';
-        document.getElementById('editBoards').checked = x.boards === 'V';
-        document.getElementById('editNotes').value = x.notes || '';
+        document.getElementById('editId').value = id; document.getElementById('editName').value = x.storeName;
+        document.getElementById('editAddr').value = x.address || ''; document.getElementById('editLat').value = x.lat;
+        document.getElementById('editLng').value = x.lng; document.getElementById('editTissues').checked = x.tissues === 'V';
+        document.getElementById('editBox').checked = x.tissueBox === 'V'; document.getElementById('editBanners').checked = x.banners === 'V';
+        document.getElementById('editBoards').checked = x.boards === 'V'; document.getElementById('editNotes').value = x.notes || '';
         document.getElementById('editModal').style.display='block'; document.getElementById('modalOverlay').style.display='block';
     };
     window.closeModal = () => { document.getElementById('editModal').style.display='none'; document.getElementById('modalOverlay').style.display='none'; };
@@ -151,22 +138,16 @@
             storeName: document.getElementById('editName').value, address: document.getElementById('editAddr').value,
             lat: parseFloat(document.getElementById('editLat').value), lng: parseFloat(document.getElementById('editLng').value),
             tissues: document.getElementById('editTissues').checked ? "V" : "", tissueBox: document.getElementById('editBox').checked ? "V" : "",
-            banners: document.getElementById('editBanners').checked ? "V" : "", boards: document.getElementById('editBoards').checked ? "V" : "",
+            banners: document.getElementById('editBanners').checked ? "V" : "", boards: document.getElementById('boards').checked ? "V" : "",
             notes: document.getElementById('editNotes').value
         });
         alert("儲存成功"); closeModal(); loadData();
     };
-
     window.delStore = async (id) => {
         const pw = prompt("請輸入刪除密碼：");
-        if(pw === "1128") {
-            if(confirm("確定要永久刪除這筆店家嗎？")) {
-                await deleteDoc(doc(db, "friendly_stores", id));
-                alert("已刪除"); loadData();
-            }
-        } else if (pw !== null) { alert("密碼錯誤！"); }
+        if(pw === "1128") { if(confirm("確定要永久刪除這筆店家嗎？")) { await deleteDoc(doc(db, "friendly_stores", id)); alert("已刪除"); loadData(); } }
+        else if (pw !== null) { alert("密碼錯誤！"); }
     };
-
     loadData();
 </script>
 </body>
