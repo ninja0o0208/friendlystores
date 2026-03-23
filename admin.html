@@ -5,21 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>友善店家-控制台</title>
     <style>
-        body { font-family: '微軟正黑體', sans-serif; padding: 20px; background: #f4f7f6; margin: 0; }
+        body { font-family: '微軟正黑體', sans-serif; padding: 15px; background: #f4f7f6; margin: 0; }
         .header-box { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .header-title { display: flex; justify-content: space-between; align-items: center; }
-        .filter-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #eee; }
+        .filter-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #eee; font-size: 14px; }
         select, input { padding: 8px; border-radius: 6px; border: 1px solid #ccc; }
         .table-container { background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; min-width: 1100px; }
+        table { width: 100%; border-collapse: collapse; min-width: 900px; /* 縮小了整體的最小寬度，適應手機 */ }
         th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; vertical-align: middle; }
-        th { background: #007bff; color: white; position: sticky; top: 0; z-index: 10; }
-        .tag { display: inline-block; background: #28a745; color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; margin: 2px; }
-        .btn-link { display: inline-flex; align-items: center; padding: 6px 14px; border-radius: 20px; text-decoration: none; font-size: 12px; font-weight: bold; margin: 2px; color: white !important; cursor: pointer; border: none; }
+        th { background: #007bff; color: white; position: sticky; top: 0; z-index: 10; white-space: nowrap; }
+        .tag { display: inline-flex; align-items: center; justify-content: center; background: #28a745; color: white; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; margin: 2px; }
+        
+        /* 功能操作按鈕專用排版 */
+        .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; min-width: 140px; }
+        .btn-link { display: inline-flex; align-items: center; justify-content: center; padding: 8px 10px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: bold; color: white !important; cursor: pointer; border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .loc-btn { background: #22c55e; } .nav-btn { background: #1a73e8; } .edit-btn { background: #ffc107; color: #333 !important; } .del-btn { background: #dc3545; }
-        .chief-tag { display: inline-block; padding: 4px 12px; border-radius: 20px; border: 1px solid #ddd; font-weight: bold; font-size: 13px; margin-top: 4px; }
+        
+        .chief-tag { display: inline-block; padding: 4px 12px; border-radius: 20px; border: 1px solid #ddd; font-weight: bold; font-size: 13px; margin-top: 4px; white-space: nowrap; }
         .chief-female { background-color: #ffeef2; color: #d63384; } .chief-male { background-color: #f0f7ff; color: #007bff; }
-        .photo-thumb { width: 45px; height: 45px; border-radius: 4px; object-fit: cover; border: 1px solid #eee; margin: 2px; }
+        .photo-thumb { width: 40px; height: 40px; border-radius: 4px; object-fit: cover; border: 1px solid #eee; margin: 2px; }
         #editModal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; box-shadow:0 0 25px rgba(0,0,0,0.3); border-radius:12px; z-index:100; width:450px; max-width: 90%; }
         .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:99; }
     </style>
@@ -28,7 +32,7 @@
 
 <div class="header-box">
     <div class="header-title">
-        <h2 style="margin: 0;">📊 友善店家-控制台 <span id="dataCount" style="font-size:14px; color:#666; font-weight:normal;"></span></h2>
+        <h2 style="margin: 0;">📊 控制台 <span id="dataCount" style="font-size:14px; color:#666; font-weight:normal;"></span></h2>
     </div>
     
     <div class="filter-row" style="border-top: none;">
@@ -37,12 +41,10 @@
     </div>
     
     <div class="filter-row">
-        <b>📦 物資篩選：</b>
-        <label><input type="checkbox" id="fTissues" onchange="applyFilters()"> 面紙</label>
+        <b>📦 物資：</b>
         <label><input type="checkbox" id="fBox" onchange="applyFilters()"> 面紙盒</label>
         <label><input type="checkbox" id="fBanners" onchange="applyFilters()"> 布條</label>
         <label><input type="checkbox" id="fBoards" onchange="applyFilters()"> 看板</label>
-        <small style="color:#888; margin-left:10px;">(勾選後僅顯示包含該物資的店家)</small>
     </div>
 </div>
 
@@ -50,13 +52,13 @@
     <table>
         <thead>
             <tr>
-                <th>店名 / 地址</th>
-                <th>座標</th>
-                <th>里別 / 里長</th>
-                <th>配置物資</th>
-                <th>備註</th>
-                <th>照片</th>
-                <th>功能操作</th>
+                <th style="min-width: 140px;">店名 / 地址</th>
+                <th style="min-width: 80px;">配置物資</th>
+                <th style="min-width: 100px;">備註</th>
+                <th style="min-width: 150px;">功能操作</th>
+                <th style="min-width: 90px;">照片</th>
+                <th style="min-width: 110px;">座標</th>
+                <th style="min-width: 90px;">里長</th>
             </tr>
         </thead>
         <tbody id="storeList"></tbody>
@@ -75,7 +77,6 @@
     </div>
     <div style="margin-bottom:12px;">
         <b>物資：</b><br>
-        <label><input type="checkbox" id="editTissues"> 面紙</label> 
         <label><input type="checkbox" id="editBox"> 面紙盒</label> 
         <label><input type="checkbox" id="editBanners"> 布條</label> 
         <label><input type="checkbox" id="editBoards"> 看板</label>
@@ -114,9 +115,6 @@
     window.applyFilters = () => {
         const t = document.getElementById('timeFilter').value;
         const d = document.getElementById('distFilter').value;
-        
-        // 取得物資勾選狀態
-        const fTissues = document.getElementById('fTissues').checked;
         const fBox = document.getElementById('fBox').checked;
         const fBanners = document.getElementById('fBanners').checked;
         const fBoards = document.getElementById('fBoards').checked;
@@ -125,10 +123,8 @@
             let tMatch = (t==='all') || (x.jsDate.toDateString() === new Date().toDateString());
             let dMatch = (d==='all') || (x.district === d);
             
-            // 嚴格篩選：如果勾了某個物資，該店家就必須要有那個物資
             let sMatch = true;
-            if (fTissues && x.tissues !== 'V') sMatch = false;
-            if (fBox && x.tissueBox !== 'V') sMatch = false;
+            if (fBox && x.tissueBox !== 'V' && x.tissues !== 'V') sMatch = false;
             if (fBanners && x.banners !== 'V') sMatch = false;
             if (fBoards && x.boards !== 'V') sMatch = false;
 
@@ -142,28 +138,50 @@
         data.forEach(x => {
             let chief = chiefBrain[x.village] || { district: x.district || "未知", name: "待查", gender: "M" };
             let items = []; 
-            if(x.tissues === 'V') items.push('面紙'); 
-            if(x.tissueBox === 'V') items.push('面紙盒'); 
+            if(x.tissues === 'V' || x.tissueBox === 'V') items.push('面紙盒'); 
             if(x.banners === 'V') items.push('布條'); 
             if(x.boards === 'V') items.push('看板');
             
             const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lng}&travelmode=two-wheeler`;
             
-            // 替換 GPS 顯示格式、新增備註欄位
             list.innerHTML += `<tr>
-                <td><b style="font-size: 15px;">${x.storeName}</b><br><small style="color: #666;">${x.address||''}</small></td>
-                <td style="font-family: monospace; color: #444;">
-                    <small>Lat: ${x.lat.toFixed(5)}<br>Lng: ${x.lng.toFixed(5)}</small>
-                </td>
-                <td>${x.village}<br><span class="chief-tag ${chief.gender==='F'?'chief-female':'chief-male'}">${chief.name}</span></td>
-                <td>${items.map(i=>`<span class="tag">${i}</span>`).join('')}</td>
-                <td><small style="color:#555; word-break: break-all;">${x.notes || '<i style="color:#ccc;">無</i>'}</small></td>
-                <td>${(x.photos||[]).map(p=>`<a href="${p}" target="_blank"><img src="${p}" class="photo-thumb"></a>`).join('')}</td>
                 <td>
-                    <a href="index.html?id=${x.id}" class="btn-link loc-btn">🌍 定位</a>
-                    <a href="${navUrl}" target="_blank" class="btn-link nav-btn">🛵 導航</a><br>
-                    <button class="btn-link edit-btn" onclick="openEdit('${x.id}')">✏️ 修改</button>
-                    <button class="btn-link del-btn" onclick="deleteStore('${x.id}', '${x.storeName}')">🗑️ 刪除</button>
+                    <b style="font-size: 16px; color: #0056b3;">${x.storeName}</b>
+                    <div style="max-width: 130px; margin-top: 4px; font-size: 12px; color: #555; line-height: 1.4; word-wrap: break-word; white-space: normal;">
+                        ${x.address || '<i style="color:#aaa;">無地址</i>'}
+                    </div>
+                </td>
+                
+                <td>
+                    <div style="display: grid; grid-template-rows: repeat(3, auto); grid-auto-flow: column; gap: 4px; justify-content: start;">
+                        ${items.map(i=>`<span class="tag">${i}</span>`).join('')}
+                    </div>
+                </td>
+                
+                <td><div style="max-width: 120px; font-size: 13px; color: #444; word-wrap: break-word; white-space: normal;">${x.notes || '<i style="color:#ccc;">無</i>'}</div></td>
+                
+                <td>
+                    <div class="action-grid">
+                        <a href="index.html?id=${x.id}" class="btn-link loc-btn">🌍 定位</a>
+                        <button class="btn-link del-btn" onclick="deleteStore('${x.id}', '${x.storeName}')">🗑️ 刪除</button>
+                        <button class="btn-link edit-btn" onclick="openEdit('${x.id}')">✏️ 修改</button>
+                        <a href="${navUrl}" target="_blank" class="btn-link nav-btn">🛵 導航</a>
+                    </div>
+                </td>
+                
+                <td>
+                    <div style="display: flex; flex-wrap: wrap; max-width: 95px; gap: 2px;">
+                        ${(x.photos||[]).map(p=>`<a href="${p}" target="_blank"><img src="${p}" class="photo-thumb"></a>`).join('')}
+                    </div>
+                </td>
+                
+                <td style="font-family: monospace; color: #666; font-size: 12px; white-space: nowrap;">
+                    Lat: ${x.lat.toFixed(5)}<br>Lng: ${x.lng.toFixed(5)}
+                </td>
+                
+                <td style="white-space: nowrap;">
+                    <span style="font-size:13px; color:#333;">${x.village}</span><br>
+                    <span class="chief-tag ${chief.gender==='F'?'chief-female':'chief-male'}">${chief.name}</span>
                 </td>
             </tr>`;
         });
@@ -188,8 +206,7 @@
         document.getElementById('editAddr').value = x.address || '';
         document.getElementById('editLat').value = x.lat; 
         document.getElementById('editLng').value = x.lng;
-        document.getElementById('editTissues').checked = x.tissues === 'V'; 
-        document.getElementById('editBox').checked = x.tissueBox === 'V';
+        document.getElementById('editBox').checked = (x.tissues === 'V' || x.tissueBox === 'V');
         document.getElementById('editBanners').checked = x.banners === 'V'; 
         document.getElementById('editBoards').checked = x.boards === 'V';
         document.getElementById('editNotes').value = x.notes || ''; 
@@ -212,7 +229,7 @@
                 address: document.getElementById('editAddr').value, 
                 lat, lng, 
                 village: vName, district: chief.district, 
-                tissues: document.getElementById('editTissues').checked ? "V" : "", 
+                tissues: "", 
                 tissueBox: document.getElementById('editBox').checked ? "V" : "", 
                 banners: document.getElementById('editBanners').checked ? "V" : "", 
                 boards: document.getElementById('editBoards').checked ? "V" : "", 
