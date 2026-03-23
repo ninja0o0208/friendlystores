@@ -39,17 +39,12 @@
         #lightbox { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; justify-content: center; align-items: center; }
         #lightbox img { max-width: 90%; max-height: 90%; border: 5px solid white; border-radius: 5px; }
 
-        /* 🌟 修正：彩蛋滿版特效與下落動畫設定 */
         #easterEggOverlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 10000; flex-direction: column; justify-content: center; align-items: center; backdrop-filter: blur(4px); overflow: hidden; }
         .easter-text { font-size: 56px; font-weight: 900; color: #ff4081; text-shadow: 0 4px 15px rgba(0,0,0,0.2); animation: bounce 0.8s infinite alternate; text-align: center; z-index: 10002; }
         .easter-sub { font-size: 32px; font-weight: bold; color: #333; margin-top: 15px; text-shadow: 0 2px 8px rgba(255,255,255,0.8); z-index: 10002; text-align: center; }
         @keyframes bounce { from { transform: scale(0.95); } to { transform: scale(1.05); } }
         .confetti { position: absolute; top: -10vh; font-size: 36px; z-index: 10001; animation: fall linear forwards; pointer-events: none; }
-        @keyframes fall {
-            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-            80% { opacity: 1; }
-            100% { transform: translateY(120vh) rotate(360deg); opacity: 0; }
-        }
+        @keyframes fall { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 80% { opacity: 1; } 100% { transform: translateY(120vh) rotate(360deg); opacity: 0; } }
 
         @media (max-width: 768px) { body { flex-direction: column; } #map { flex: 1; min-height: 35vh; } #sidebar { flex: none; height: auto; max-height: 65vh; min-height: 60px; padding-bottom: 50px; } #sidebar.is-expanded { flex: 3; height: 65vh; } .easter-text { font-size: 40px; } .easter-sub { font-size: 24px; } }
     </style>
@@ -100,7 +95,6 @@
             </div>
             <div class="form-group">
                 <label><b>3. 放置物資</b></label><br>
-                <label style="display:block; margin:5px 0;"><input type="checkbox" id="tissues" value="V"> 可放散面紙</label>
                 <label style="display:block; margin:5px 0;"><input type="checkbox" id="tissueBox" value="V"> 可放面紙盒</label>
                 <label style="display:block; margin:5px 0;"><input type="checkbox" id="banners" value="V"> 可掛布條</label>
                 <label style="display:block; margin:5px 0;"><input type="checkbox" id="boards" value="V"> 可掛看板</label>
@@ -134,7 +128,6 @@
     ];
     let scrambleCount=0, cycleTimer=null, resumeTimer=null, currentIdx=0, markers={}, marker, interactionMode='view';
 
-    // 🌟 修正：觸發彩蛋邏輯與動態生成下落特效
     function triggerEasterEgg() {
         const egg = EasterEggConfig.find(e => e.count === scrambleCount); 
         if(!egg) return;
@@ -143,30 +136,14 @@
         const main = document.getElementById('eggMain');
         const sub = document.getElementById('eggSub');
         
-        overlay.style.background = egg.color; 
-        main.innerText = egg.main; 
-        sub.innerText = egg.sub; 
-        overlay.style.display = 'flex';
+        overlay.style.background = egg.color; main.innerText = egg.main; sub.innerText = egg.sub; overlay.style.display = 'flex';
         
-        // 產生 50 個往下掉的符號
         for(let i=0; i<50; i++) { 
-            const c = document.createElement('div'); 
-            c.className = 'confetti'; 
-            c.innerHTML = egg.symbols[Math.floor(Math.random() * egg.symbols.length)]; 
-            c.style.left = Math.random() * 100 + 'vw'; 
-            // 設定不同的延遲時間與落下速度，讓特效更自然
-            c.style.animationDelay = (Math.random() * 1.5) + 's'; 
-            c.style.animationDuration = (Math.random() * 3 + 2.5) + 's';
-            // 隨機大小
-            c.style.transform = `scale(${Math.random() * 0.5 + 0.8})`;
-            overlay.appendChild(c); 
+            const c = document.createElement('div'); c.className = 'confetti'; c.innerHTML = egg.symbols[Math.floor(Math.random() * egg.symbols.length)]; 
+            c.style.left = Math.random() * 100 + 'vw'; c.style.animationDelay = (Math.random() * 1.5) + 's'; c.style.animationDuration = (Math.random() * 3 + 2.5) + 's'; c.style.transform = `scale(${Math.random() * 0.5 + 0.8})`; overlay.appendChild(c); 
         }
         
-        setTimeout(() => { 
-            overlay.style.display = 'none'; 
-            overlay.querySelectorAll('.confetti').forEach(el => el.remove()); 
-            if(scrambleCount >= 30) scrambleCount = 0; 
-        }, 5500);
+        setTimeout(() => { overlay.style.display = 'none'; overlay.querySelectorAll('.confetti').forEach(el => el.remove()); if(scrambleCount >= 30) scrambleCount = 0; }, 5500);
     }
 
     window.photoAction = function(img) { document.getElementById('lightboxImg').src = img.src; document.getElementById('lightbox').style.display = 'flex'; };
@@ -205,7 +182,15 @@
         map.eachLayer(l => { if(l instanceof L.Marker && l !== marker) map.removeLayer(l); });
         const timeFilter = document.getElementById('mapTimeFilter').value;
         const distFilter = document.getElementById('mapDistFilter').value;
-        const distCoords = { "漳和": [24.994, 121.503], "員山": [25.002, 121.485], "南勢": [24.985, 121.505], "秀安": [25.001, 121.515] };
+        
+        // 🌟 更新的四個分區中心點 (依據指定的里別預估)
+        const distCoords = { 
+            "漳和": [25.0019, 121.4958], // 連和里
+            "員山": [25.0045, 121.4815], // 嘉慶里
+            "南勢": [24.9840, 121.5080], // 內南里
+            "秀安": [24.9935, 121.5165]  // 景平里
+        };
+        
         if(distFilter !== 'all' && distCoords[distFilter]) map.setView(distCoords[distFilter], 15);
 
         const snap = await getDocs(query(collection(db, "friendly_stores"), orderBy("createdAt", "desc")));
@@ -219,7 +204,12 @@
 
             if (timeMatch && distMatch && d.lat && d.lng) {
                 const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}&travelmode=two-wheeler`;
-                let items = []; if(d.tissues) items.push('可放散面紙'); if(d.tissueBox) items.push('可放面紙盒'); if(d.banners) items.push('可掛布條'); if(d.boards) items.push('可掛看板');
+                
+                let items = []; 
+                if(d.tissues === 'V' || d.tissueBox === 'V') items.push('可放面紙盒'); 
+                if(d.banners === 'V') items.push('可掛布條'); 
+                if(d.boards === 'V') items.push('可掛看板');
+                
                 let itemsHtml = items.length > 0 ? `<div class="item-tag-container">${items.map(i => `<span class="item-tag">${i}</span>`).join('')}</div>` : '';
                 const hasPhotos = d.photos && d.photos.length > 0;
                 let galleryHtml = hasPhotos ? `<div class="photo-stack-container" id="stack-${id}">` : `<div style="margin-bottom:10px;"></div>`;
@@ -353,8 +343,10 @@
                 storeName, address: document.getElementById('address').value,
                 lat: parseFloat(lat), lng: parseFloat(document.getElementById('lng').value),
                 district: document.getElementById('district').value, village: document.getElementById('village').value,
-                tissues: document.getElementById('tissues').checked ? "V" : "", tissueBox: document.getElementById('tissueBox').checked ? "V" : "",
-                banners: document.getElementById('banners').checked ? "V" : "", boards: document.getElementById('boards').checked ? "V" : "",
+                tissues: "", 
+                tissueBox: document.getElementById('tissueBox').checked ? "V" : "", 
+                banners: document.getElementById('banners').checked ? "V" : "", 
+                boards: document.getElementById('boards').checked ? "V" : "",
                 notes: document.getElementById('notes').value, photos: urls, createdAt: serverTimestamp()
             });
             alert("✅ 新增成功！");
