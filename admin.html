@@ -59,7 +59,7 @@
     </div>
     <div style="margin-bottom:12px;">
         <b>物資：</b><br>
-        <label><input type="checkbox" id="editTissues"> 散面紙</label> 
+        <label><input type="checkbox" id="editTissues"> 面紙</label> 
         <label><input type="checkbox" id="editBox"> 面紙盒</label> 
         <label><input type="checkbox" id="editBanners"> 布條</label> 
         <label><input type="checkbox" id="editBoards"> 看板</label>
@@ -108,7 +108,7 @@
     function render(data) {
         const list = document.getElementById('storeList'); list.innerHTML = '';
         data.forEach(x => {
-            let items = []; if(x.tissues) items.push('可放散面紙'); if(x.tissueBox) items.push('面紙盒'); if(x.banners) items.push('布條'); if(x.boards) items.push('看板');
+            let items = []; if(x.tissues) items.push('可放面紙'); if(x.tissueBox) items.push('面紙盒'); if(x.banners) items.push('布條'); if(x.boards) items.push('看板');
             const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lng}&travelmode=motorcycle`;
             const chiefClass = (x.chiefEmoji === "👩‍💼") ? "chief-female" : "chief-male";
             let photosHtml = (x.photos || []).map(p => `<a href="${p}" target="_blank"><img src="${p}" class="photo-thumb"></a>`).join('');
