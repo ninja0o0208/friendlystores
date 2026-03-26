@@ -34,15 +34,11 @@
         .photo-flow { display: flex; flex-wrap: wrap; gap: 4px; max-width: 140px; }
         .photo-thumb { width: 42px; height: 42px; border-radius: 4px; object-fit: cover; border: 1px solid #eee; margin: 0; }
         
-        /* 編輯視窗 */
-        #editModal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; box-shadow:0 0 25px rgba(0,0,0,0.3); border-radius:12px; z-index:100; width:480px; max-width: 95%; max-height: 90vh; overflow-y: auto; }
+        /* 編輯視窗加寬一點容納地圖 */
+        #editModal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; box-shadow:0 0 25px rgba(0,0,0,0.3); border-radius:12px; z-index:100; width:500px; max-width: 95%; max-height: 90vh; overflow-y: auto; }
         .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:99; }
-        .modal-label { display: block; margin-bottom: 5px; font-weight: bold; margin-top: 10px; }
         
-        /* 編輯視窗內的小地圖 */
-        #editMapContainer { position: relative; width: 100%; height: 200px; margin-bottom: 15px; border-radius: 8px; border: 2px solid #ddd; overflow: hidden; z-index: 1; }
-        #editMap { width: 100%; height: 100%; }
-        .modal-map-pin { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); z-index: 1000; pointer-events: none; }
+        #editMap { width: 100%; height: 200px; border-radius: 8px; border: 1px solid #ccc; margin-bottom: 10px; z-index: 1; }
     </style>
 </head>
 <body>
@@ -88,76 +84,59 @@
 <div id="modalOverlay" class="modal-overlay" onclick="closeModal()"></div>
 <div id="editModal">
     <h3 style="margin-top:0;">✏️ 編輯店家資訊</h3>
-    
-    <span class="modal-label">📍 座標修正 (拖曳地圖，讓十字準心對準店家)</span>
-    <div id="editMapContainer">
-        <img src="https://maps.gstatic.com/mapfiles/markers2/marker_sprite.png" class="modal-map-pin" style="display:none;"> <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#dc3545; font-size:24px; z-index:1001; pointer-events:none;">⊕</div>
-        <div id="editMap"></div>
-    </div>
-    
     <input type="hidden" id="editId">
     
-    <div style="display:flex; gap:10px; margin-bottom:12px; font-family: monospace; font-size: 12px;">
-        <div style="flex:1;"><label>緯度 (Lat)</label><input type="text" id="editLat" style="width:100%;" readonly></div>
-        <div style="flex:1;"><label>經度 (Lng)</label><input type="text" id="editLng" style="width:100%;" readonly></div>
-    </div>
-
-    <label class="modal-label">✏️ 店名</label> <input type="text" id="editName" style="width:100%;">
+    <label>店名</label> <input type="text" id="editName" style="width:100%; margin-bottom:12px;">
     
-    <div style="display:flex; gap:10px;">
-        <div style="flex:2;"><label class="modal-label">地址</label> <input type="text" id="editAddr" style="width:100%;"></div>
-        <div style="flex:1;"><label class="modal-label">里別</label> <input type="text" id="editVillage" style="width:100%;"></div>
+    <label>地址與座標 (若地址變更，可點擊轉座標)</label>
+    <div style="display:flex; gap:8px; margin-bottom:10px;">
+        <input type="text" id="editAddr" style="flex:1;">
+        <button type="button" onclick="adminFetchGps()" id="adminBtnGps" style="background:#ffc107; color:#333; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">🔍 轉座標</button>
     </div>
 
-    <div style="margin-top:15px; margin-bottom:12px;">
-        <b>📦 物資：</b>
+    <div id="editMap"></div>
+    <div style="font-size:11px; color:#d9534f; margin-bottom:12px; text-align:center;">💡 提示：如果座標有誤差，可以直接在上方地圖拖曳綠色地標微調！</div>
+
+    <div style="display:flex; gap:10px; margin-bottom:12px;">
+        <div style="flex:1;"><label>緯度 (Lat)</label><input type="text" id="editLat" style="width:100%;"></div>
+        <div style="flex:1;"><label>經度 (Lng)</label><input type="text" id="editLng" style="width:100%;"></div>
+        <div style="flex:1;"><label>里別 (可手動)</label><input type="text" id="editVillage" style="width:100%; background:#fffde7;"></div>
+    </div>
+    <div style="margin-bottom:12px;">
+        <b>物資：</b><br>
         <label><input type="checkbox" id="editBox"> 面紙盒</label> 
         <label><input type="checkbox" id="editBanners"> 布條</label> 
         <label><input type="checkbox" id="editBoards"> 看板</label>
     </div>
-    
-    <label class="modal-label">📝 備註</label> <input type="text" id="editNotes" style="width:100%; margin-bottom:20px;">
-    
+    <label>備註</label> <input type="text" id="editNotes" style="width:100%; margin-bottom:20px;">
     <button id="saveEditBtn" onclick="saveEdit()" style="background:#28a745; color:white; border:none; padding:15px; width:100%; cursor:pointer; font-weight:bold; border-radius:8px;">✅ 儲存修改</button>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module">
-    // Firebase 初始化與舊有邏輯 (保持原樣)
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getFirestore, collection, getDocs, updateDoc, doc, deleteDoc, orderBy, query } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
     const firebaseConfig = { apiKey: "AIzaSyAI2OmA4VUUes3psK5cYJL-xqG_UVxv8iU", authDomain: "friendly-stores.firebaseapp.com", projectId: "friendly-stores", storageBucket: "friendly-stores.firebasestorage.app", databaseURL: "https://friendly-stores-default-rtdb.asia-southeast1.firebasedatabase.app" };
+    // GAS API 共用
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz9gxnqk55tZ2AU9q0zm3S44m-dgK_aYSJtGYrGkHjREu3-JgPVFEEem7bmbPOcRFEa/exec";
+    
     const app = initializeApp(firebaseConfig); 
     const db = getFirestore(app);
     let allData = [], chiefBrain = {};
     window.currentFilteredData = [];
     
-    // --- 編輯地圖實例 (Modal內用) ---
-    let editMapInstance = null;
+    let adminMap = null;
+    let adminMarker = null;
 
     async function loadAll() {
         const cSnap = await getDocs(collection(db, "chief_data"));
         cSnap.forEach(d => chiefBrain[d.id] = d.data());
         const sSnap = await getDocs(query(collection(db, "friendly_stores"), orderBy("createdAt", "desc")));
         allData = sSnap.docs.map(d => ({id:d.id, ...d.data(), jsDate: d.data().createdAt?.toDate() || new Date()}));
-        // 自動里別補抓 (保持原樣，針對舊資料或漏抓資料)
-        allData.forEach(async (x, i) => {
-            if(!x.village || x.village === "未定位" || x.village === "中和區外?") {
-                try {
-                    const res = await fetch(`https://api.nlsc.gov.tw/other/TownVillagePointQuery/${x.lng}/${x.lat}`);
-                    const vName = new DOMParser().parseFromString(await res.text(), "text/xml").getElementsByTagName("villageName")[0]?.textContent;
-                    if(vName && vName !== allData[i].village) { 
-                        allData[i].village = vName; 
-                        updateDoc(doc(db, "friendly_stores", x.id), {village: vName}); // 自動修正 Firebase
-                    }
-                } catch(e) {}
-            }
-        });
         applyFilters();
     }
 
-    // 篩選功能 (保持原樣)
     window.applyFilters = () => {
         const t = document.getElementById('timeFilter').value;
         const d = document.getElementById('distFilter').value;
@@ -167,7 +146,6 @@
 
         const filtered = allData.filter(x => {
             let tMatch = (t==='all') || (x.jsDate.toDateString() === new Date().toDateString());
-            // 連動里長資料抓取 District
             let c = chiefBrain[x.village];
             let distMatch = (d==='all') || (c && c.district === d);
             
@@ -178,16 +156,14 @@
 
             return tMatch && distMatch && sMatch;
         });
-        
         window.currentFilteredData = filtered;
         render(filtered);
     };
 
-    // 渲染表格 (保持原樣)
     function render(data) {
         const list = document.getElementById('storeList'); list.innerHTML = '';
         data.forEach(x => {
-            let chief = chiefBrain[x.village] || { district: "未知", name: "待查", gender: "M" };
+            let chief = chiefBrain[x.village] || { district: x.district || "未知", name: "待查", gender: "M" };
             let items = []; 
             if(x.tissues === 'V' || x.tissueBox === 'V') items.push('面紙盒'); 
             if(x.banners === 'V') items.push('布條'); 
@@ -197,67 +173,76 @@
                 <td>
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 6px;">
                         <b style="font-size: 16px; color: #0056b3; word-break: break-all;">${x.storeName}</b>
-                        <a href="index.html?id=${x.id}" class="btn-link loc-btn" style="margin:0; flex-shrink: 0;" target="_blank">🌍 地圖</a>
+                        <a href="index.html?id=${x.id}" class="btn-link loc-btn" style="margin:0; flex-shrink: 0;" target="_blank">🌍 檢視</a>
                     </div>
-                    <div style="max-width: 140px; margin-top: 6px; font-size: 11px; color: #777; line-height: 1.3; white-space: normal; word-wrap: break-word;">
-                        ${x.address || '<i style="color:#aaa;">無地址資料</i>'}
-                    </div>
-                </td>
-                
-                <td>
-                    <div style="display: grid; grid-template-rows: repeat(3, auto); grid-auto-flow: column; gap: 4px; justify-content: start;">
-                        ${items.map(i=>`<span class="tag">${i}</span>`).join('')}
+                    <div style="max-width: 140px; margin-top: 6px; font-size: 12px; color: #555; line-height: 1.4; word-wrap: break-word; white-space: normal;">
+                        ${x.address || '<i style="color:#aaa;">無地址</i>'}
                     </div>
                 </td>
-                
+                <td><div style="display: grid; grid-template-rows: repeat(3, auto); grid-auto-flow: column; gap: 4px; justify-content: start;">${items.map(i=>`<span class="tag">${i}</span>`).join('')}</div></td>
                 <td><div style="max-width: 130px; font-size: 13px; color: #444; word-wrap: break-word; white-space: normal;">${x.notes || '<i style="color:#ccc;">無</i>'}</div></td>
-                
-                <td>
-                    <div class="photo-flow">
-                        ${(x.photos||[]).map(p=>`<a href="${p}" target="_blank"><img src="${p}" class="photo-thumb"></a>`).join('')}
-                    </div>
-                </td>
-                
-                <td style="font-family: monospace; color: #666; font-size: 12px; white-space: nowrap;">
-                    Lat: ${x.lat ? x.lat.toFixed(5) : '?'}<br>Lng: ${x.lng ? x.lng.toFixed(5) : '?'}
-                </td>
-                
+                <td><div class="photo-flow">${(x.photos||[]).map(p=>`<a href="${p}" target="_blank"><img src="${p}" class="photo-thumb"></a>`).join('')}</div></td>
+                <td style="font-family: monospace; color: #666; font-size: 12px; white-space: nowrap;">Lat: ${x.lat ? x.lat.toFixed(5):'?'}<br>Lng: ${x.lng ? x.lng.toFixed(5):'?'}</td>
                 <td style="white-space: nowrap;">
                     <span style="font-size:13px; color:#333; font-weight:bold;">${x.village}</span><br>
                     <span class="chief-tag ${chief.gender==='F'?'chief-female':'chief-male'}">${chief.name}</span>
                 </td>
-                
                 <td>
                     <div class="action-column">
                         <button class="btn-link action-btn edit-btn" onclick="openEdit('${x.id}')">✏️ 修改</button>
                         <button class="btn-link action-btn del-btn" onclick="deleteStore('${x.id}', '${x.storeName}')">🗑️ 刪除</button>
                     </div>
                 </td>
-                
                 <td></td>
             </tr>`;
         });
         document.getElementById('dataCount').innerText = `(共 ${data.length} 筆)`;
     }
 
-    // 刪除邏輯 (保持原樣)
     window.deleteStore = async (id, name) => {
         const pwd = prompt(`確定要刪除「${name}」嗎？\n請輸入刪除密碼：`);
-        if (pwd !== "1128") { if (pwd !== null) alert("❌ 密碼錯誤，取消刪除。"); return; }
-        if (confirm(`最後確認：真的要刪除「${name}」嗎？刪除後無法復原！`)) {
+        if (pwd !== "1128") return;
+        if (confirm(`確定刪除？`)) {
             try { await deleteDoc(doc(db, "friendly_stores", id)); alert("✅ 刪除成功！"); loadAll(); } catch (e) {}
         }
     };
 
-    // --- 4. 打開編輯視窗 (加入地圖初始化邏輯) ---
+    // ★ 初始化或更新編輯地圖
+    function updateAdminMap(lat, lng) {
+        if (!adminMap) {
+            adminMap = L.map('editMap').setView([lat, lng], 18);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(adminMap);
+        } else {
+            adminMap.setView([lat, lng], 18);
+        }
+
+        if (adminMarker) adminMap.removeLayer(adminMarker);
+        
+        // 建立可拖曳的綠色地標
+        adminMarker = L.marker([lat, lng], {
+            draggable: true,
+            icon: L.icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png', shadowSize: [41, 41], iconSize: [25, 41], iconAnchor: [12, 41]})
+        }).addTo(adminMap);
+
+        // 拖曳結束時，更新經緯度輸入框
+        adminMarker.on('dragend', function(event) {
+            const pos = event.target.getLatLng();
+            document.getElementById('editLat').value = pos.lat.toFixed(6);
+            document.getElementById('editLng').value = pos.lng.toFixed(6);
+        });
+        
+        // 讓 Leaflet 知道容器顯示了，否則地圖可能會破圖
+        setTimeout(() => adminMap.invalidateSize(), 200);
+    }
+
     window.openEdit = (id) => {
         const x = allData.find(d => d.id === id); if(!x) return;
         document.getElementById('editId').value = id; 
         document.getElementById('editName').value = x.storeName; 
         document.getElementById('editAddr').value = x.address || '';
         document.getElementById('editVillage').value = x.village || '';
-        // 座標 (由地圖連動更新，不可手填)
-        const lat = x.lat || 24.998; const lng = x.lng || 121.503;
+        
+        let lat = x.lat || 24.993, lng = x.lng || 121.496;
         document.getElementById('editLat').value = lat; 
         document.getElementById('editLng').value = lng;
         
@@ -268,115 +253,76 @@
         
         document.getElementById('editModal').style.display='block'; 
         document.getElementById('modalOverlay').style.display='block';
-
-        // 初始化或更新 Modal 內的小地圖
-        initEditMap(lat, lng);
+        
+        // 更新地圖位置
+        updateAdminMap(lat, lng);
     };
     
-    // 初始化編輯器內的地圖
-    function initEditMap(lat, lng) {
-        if (!editMapInstance) {
-            // 第一次打開，建立實例
-            editMapInstance = L.map('editMap', {
-                center: [lat, lng],
-                zoom: 18,
-                zoomControl: true 
-            });
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(editMapInstance);
-            
-            // 監聽地圖拖曳，更新隱藏的座標欄位
-            editMapInstance.on('move', () => {
-                const center = editMapInstance.getCenter();
-                document.getElementById('editLat').value = center.lat.toFixed(6);
-                document.getElementById('editLng').value = center.lng.toFixed(6);
-            });
-            
-            // 監聽拖曳結束，嘗試更新里別 (輔助用，防止移動太大)
-            editMapInstance.on('moveend', () => {
-                const center = editMapInstance.getCenter();
-                updateEditVillage(center.lat, center.lng);
-            });
-
-        } else {
-            // 已經有實例，移動中心點即可
-            editMapInstance.setView([lat, lng], 18);
-        }
+    // ★ Admin 地址轉換 GPS 功能
+    window.adminFetchGps = async () => {
+        let addr = document.getElementById('editAddr').value;
+        if(!addr) return alert("請先填寫地址");
+        if(!addr.includes("市") && !addr.includes("縣")) addr = "新北市中和區" + addr;
         
-        // 必須呼叫，Leaflet 在 Modal 或隱藏容器中渲染需要重新計算尺寸
-        setTimeout(() => { editMapInstance.invalidateSize(); }, 200);
-    }
-    
-    // 編輯器移動地圖時，輔助更新里別欄位
-    async function updateEditVillage(lat, lng) {
+        const btn = document.getElementById('adminBtnGps');
+        btn.innerText = "⏳ 載入中";
+        
         try {
-            const res = await fetch(`https://api.nlsc.gov.tw/other/TownVillagePointQuery/${lng}/${lat}`);
-            const vName = new DOMParser().parseFromString(await res.text(), "text/xml").getElementsByTagName("villageName")[0]?.textContent;
-            if(vName) { document.getElementById('editVillage').value = vName; }
-        } catch(e) {}
-    }
+            const res = await fetch(GAS_API_URL + "?address=" + encodeURIComponent(addr));
+            const data = await res.json();
+            if(data.status === 'OK') {
+                const lat = data.results[0].geometry.location.lat;
+                const lng = data.results[0].geometry.location.lng;
+                document.getElementById('editLat').value = lat;
+                document.getElementById('editLng').value = lng;
+                updateAdminMap(lat, lng);
+            } else {
+                alert("找不到對應的座標，請檢查地址。");
+            }
+        } catch(e) {
+            alert("API 連線失敗，請手動拖曳地圖地標。");
+        }
+        btn.innerText = "🔍 轉座標";
+    };
 
     window.closeModal = () => { document.getElementById('editModal').style.display='none'; document.getElementById('modalOverlay').style.display='none'; };
     
-    // --- 5. 儲存修改 (以手動欄位為主) ---
     window.saveEdit = async () => {
         const id = document.getElementById('editId').value; const btn = document.getElementById('saveEditBtn');
         btn.disabled = true; btn.innerText = "⏳ 儲存中...";
         try {
-            // 1. 直接抓取地圖連動更新出來的 lat/lng 欄位
             const lat = parseFloat(document.getElementById('editLat').value);
             const lng = parseFloat(document.getElementById('editLng').value);
-            
-            // 2. 抓取里別欄位 (如果拖曳地圖後，自動更新有誤，管理員可手動改)
             const vName = document.getElementById('editVillage').value.trim() || "未定位";
             const chief = chiefBrain[vName] || { district: "未知" };
 
-            // 3. 儲存
             await updateDoc(doc(db, "friendly_stores", id), { 
                 storeName: document.getElementById('editName').value, 
                 address: document.getElementById('editAddr').value, 
-                lat, lng, // 修正後的座標
-                village: vName, 
+                lat, lng, 
+                village: vName, district: chief.district,
                 tissues: "", 
                 tissueBox: document.getElementById('editBox').checked ? "V" : "", 
                 banners: document.getElementById('editBanners').checked ? "V" : "", 
                 boards: document.getElementById('editBoards').checked ? "V" : "", 
                 notes: document.getElementById('editNotes').value 
             });
-            alert("✅ 資料與座標已成功儲存！"); closeModal(); loadAll();
+            alert("✅ 儲存成功！"); closeModal(); loadAll();
         } catch (e) { alert("❌ 儲存失敗"); }
         btn.disabled = false; btn.innerText = "✅ 儲存修改";
     };
 
-    // Excel 匯出 (保持原樣，座標以資料庫為主)
     window.exportToExcel = () => {
         const dataToExport = window.currentFilteredData && window.currentFilteredData.length > 0 ? window.currentFilteredData : allData;
         if (dataToExport.length === 0) { alert("沒有資料可以匯出！"); return; }
-        let csvContent = "\uFEFF"; // BOM
-        csvContent += ",,,友善店家,,,,,,,, \n";
-        csvContent += "序號,里別,店名,地址,聯絡方式,聯絡人,面紙,布條,看板,備註,Lat,Lng\n";
-        dataToExport.forEach((x, index) => {
-            const seq = index + 1;
-            const village = x.village || "";
-            const name = x.storeName ? `"${x.storeName.replace(/"/g, '""')}"` : "";
-            const addr = x.address ? `"${x.address.replace(/"/g, '""')}"` : "";
-            const tissues = (x.tissues === 'V' || x.tissueBox === 'V') ? "V" : "";
-            const banners = (x.banners === 'V') ? "V" : "";
-            const boards = (x.boards === 'V') ? "V" : "";
-            const notes = x.notes ? `"${x.notes.replace(/"/g, '""')}"` : "";
-            // 匯出精確座標供後續使用
-            const lat = x.lat || "";
-            const lng = x.lng || "";
-            csvContent += `${seq},${village},${name},${addr},,,,${tissues},${banners},${boards},${notes},${lat},${lng}\n`;
+        let csvContent = "\uFEFF,,,友善店家,,,,,,,, \n序號,里別,店名,地址,聯絡方式,聯絡人,面紙,布條,看板,備註,,補給日\n";
+        dataToExport.forEach((x, i) => {
+            csvContent += `${i+1},${x.village||""},${x.storeName?`"${x.storeName.replace(/"/g, '""')}"`:""},${x.address?`"${x.address.replace(/"/g, '""')}"`:""},,,${(x.tissues==='V'||x.tissueBox==='V')?"V":""},${x.banners==='V'?"V":""},${x.boards==='V'?"V":""},${x.notes?`"${x.notes.replace(/"/g, '""')}"`:""},,\n`;
         });
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        const today = new Date().toISOString().slice(0, 10);
-        link.setAttribute("download", `友善店家名單_${today}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const link = document.createElement("a"); link.href = URL.createObjectURL(blob);
+        link.download = `友善店家清單_${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
     };
 
     loadAll();

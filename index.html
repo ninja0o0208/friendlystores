@@ -3,250 +3,425 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>友善店家物資募集</title>
+    <title>友善店家佈點地圖</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
     <style>
-        body { font-family: '微軟正黑體', sans-serif; margin: 0; background: #fdfdfd; display: flex; flex-direction: column; height: 100vh; overscroll-behavior: none; }
-        #map-container { position: relative; height: 45vh; width: 100%; border-bottom: 3px solid #007bff; box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 10; }
-        #map { height: 100%; width: 100%; }
-        
-        /* 地圖中央指示器 (精確定位用) */
-        .map-center-pin {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -100%); /* 底部對齊地圖中心 */
-            z-index: 1000; pointer-events: none; /* 滑鼠穿透 */
-            display: flex; flex-direction: column; align-items: center;
-        }
-        .pin-head { width: 30px; height: 30px; background: #dc3545; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 2px 5px rgba(0,0,0,0.3); border: 2px solid white; }
-        .pin-shadow { width: 10px; height: 4px; background: rgba(0,0,0,0.3); border-radius: 50%; margin-top: -5px; }
-        
-        /* 地圖上方提示 */
-        .map-instruction {
-            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.7); color: white; padding: 6px 15px;
-            border-radius: 20px; font-size: 13px; font-weight: bold; z-index: 1001;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2); pointer-events: none; white-space: nowrap;
-        }
+        body { margin: 0; padding: 0; font-family: '微軟正黑體', sans-serif; display: flex; height: 100vh; flex-direction: row; overflow: hidden; }
+        #map { flex: 2; height: 100%; z-index: 1; transition: flex 0.4s ease; }
+        #sidebar { flex: 1; padding: 15px; overflow-y: auto; background: #fff; box-shadow: -2px 0 5px rgba(0,0,0,0.1); z-index: 1000; min-width: 320px; transition: all 0.3s ease; display: flex; flex-direction: column; -webkit-overflow-scrolling: touch; }
+        .form-group { margin-bottom: 12px; background: #f8f9fa; padding: 10px; border-radius: 10px; border: 1px solid #eee; }
+        .filter-group { background: #eef4ff; border: 1px solid #d0e1ff; margin-bottom: 15px; padding: 12px; border-radius: 10px; }
+        input[type="text"], input[type="file"], select { width: 100%; padding: 12px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; }
+        .mode-toggle { display: flex; background: #eee; border-radius: 25px; padding: 4px; margin-bottom: 10px; flex-shrink: 0; }
+        .mode-btn { flex: 1; text-align: center; padding: 10px; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.3s; }
+        .mode-active { background: #1a73e8; color: white; border-radius: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .collapse-header { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f1f3f4; border-radius: 8px; cursor: pointer; margin-bottom: 10px; flex-shrink: 0; }
+        #collapsibleContent { transition: max-height 0.4s ease-in-out, opacity 0.3s; max-height: 2000px; opacity: 1; }
+        .is-collapsed #collapsibleContent { max-height: 0 !important; opacity: 0; pointer-events: none; overflow: hidden; }
+        .is-collapsed .collapse-icon { transform: rotate(-180deg); }
+        .collapse-icon { transition: transform 0.3s; font-weight: bold; }
+        .main-btn { padding: 16px; background: #28a745; color: white; border: none; cursor: pointer; width: 100%; font-size: 18px; font-weight: bold; border-radius: 8px; margin-top: 10px; margin-bottom: 30px; transition: 0.3s; }
+        .main-btn:disabled { background: #6c757d; cursor: not-allowed; }
+        .action-btn { padding: 10px; background: #1a73e8; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; flex: 1; }
+        .flex-row { display: flex; gap: 8px; margin-top: 5px; }
+        .home-btn { background: white; width: 34px; height: 34px; line-height: 34px; text-align: center; cursor: pointer; box-shadow: 0 1px 5px rgba(0,0,0,0.4); border-radius: 4px; font-size: 18px; }
+        .popup-btn { display: inline-flex; align-items: center; justify-content: center; padding: 8px 15px; border-radius: 20px; font-weight: bold; font-size: 14px; margin: 10px 4px 0; text-decoration: none !important; cursor: pointer; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .nav-link { background: #1a73e8; color: white !important; }
+        .scramble-btn { background: #ffc107; color: #333 !important; }
+        .item-tag-container { margin: 10px 0; padding: 8px; background: #f0fdf4; border-radius: 8px; border: 1px solid #dcfce7; position: relative; z-index: 1001; }
+        .item-tag { display: inline-block; background: #22c55e; color: white; padding: 4px 12px; border-radius: 6px; font-size: 14px; font-weight: bold; margin: 3px; }
+        .popup-addr { font-size: 12px; color: #666; margin-top: 2px; display: block; line-height: 1.2; }
+        .photo-stack-container { position: relative; width: 100%; height: 180px; margin: 35px auto 15px; perspective: 1000px; z-index: 100; }
+        .stack-photo { position: absolute; width: 120px; height: 120px; object-fit: cover; border: 4px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.2); left: 50%; margin-left: -60px; transition: all 0.6s cubic-bezier(0.165, 0.84, 0.44, 1); cursor: pointer; z-index: 1; }
+        .stack-photo.active { transform: scale(1.25) rotate(var(--active-rot, 0deg)) !important; z-index: 500 !important; box-shadow: 0 12px 35px rgba(0,0,0,0.4); }
+        #lightbox { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; justify-content: center; align-items: center; }
+        #lightbox img { max-width: 90%; max-height: 90%; border: 5px solid white; border-radius: 5px; }
 
-        #form-container { flex: 1; overflow-y: auto; padding: 15px; padding-bottom: 80px; box-sizing: border-box; }
-        .input-group { margin-bottom: 12px; }
-        .input-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; font-size: 15px; }
-        input[type="text"], textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        textarea { resize: none; height: 60px; }
-        
-        /* 圖片上傳區 */
-        .photo-upload-section { margin-bottom: 15px; }
-        .photo-preview-container { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
-        .photo-box { width: 70px; height: 70px; border-radius: 8px; background: #eee; display: flex; align-items: center; justify-content: center; color: #888; border: 2px dashed #ccc; cursor: pointer; position: relative; overflow: hidden; }
-        .photo-box img { width: 100%; height: 100%; object-fit: cover; }
-        .photo-box.has-img { border-style: solid; border-color: #ddd; }
-        .photo-box .remove-btn { position: absolute; top: -5px; right: -5px; background: rgba(220,53,69,0.9); color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+        #easterEggOverlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 10000; flex-direction: column; justify-content: center; align-items: center; backdrop-filter: blur(4px); overflow: hidden; }
+        .easter-text { font-size: 56px; font-weight: 900; color: #ff4081; text-shadow: 0 4px 15px rgba(0,0,0,0.2); animation: bounce 0.8s infinite alternate; text-align: center; z-index: 10002; }
+        .easter-sub { font-size: 32px; font-weight: bold; color: #333; margin-top: 15px; text-shadow: 0 2px 8px rgba(255,255,255,0.8); z-index: 10002; text-align: center; }
+        @keyframes bounce { from { transform: scale(0.95); } to { transform: scale(1.05); } }
+        .confetti { position: absolute; top: -10vh; font-size: 36px; z-index: 10001; animation: fall linear forwards; pointer-events: none; }
+        @keyframes fall { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 80% { opacity: 1; } 100% { transform: translateY(120vh) rotate(360deg); opacity: 0; } }
 
-        /* 底部按鈕區 */
-        #submit-bar { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.95); padding: 10px 15px; display: flex; gap: 10px; border-top: 1px solid #eee; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 100; }
-        .submit-btn { flex: 1; padding: 12px; border: none; border-radius: 10px; color: white; font-weight: bold; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 3px 6px rgba(0,0,0,0.1); }
-        
-        #btn-box { background: #007bff; }
-        #btn-banners { background: #28a745; }
-        #btn-boards { background: #ffc107; color: #333; }
-        
-        #loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 2000; align-items: center; justify-content: center; flex-direction: column; }
-        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin-bottom: 10px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @media (max-width: 768px) { body { flex-direction: column; } #map { flex: 1; min-height: 35vh; } #sidebar { flex: none; height: auto; max-height: 65vh; min-height: 60px; padding-bottom: 50px; } #sidebar.is-expanded { flex: 3; height: 65vh; } .easter-text { font-size: 40px; } .easter-sub { font-size: 24px; } }
     </style>
 </head>
 <body>
 
-<div id="map-container">
-    <div class="map-instruction">📍 請移動地圖，將紅點對準店家門口</div>
-    <div class="map-center-pin">
-        <div class="pin-head"></div>
-        <div class="pin-shadow"></div>
-    </div>
-    <div id="map"></div>
+<div id="map"></div>
+
+<div id="easterEggOverlay">
+    <div id="eggMain" class="easter-text"></div>
+    <div id="eggSub" class="easter-sub"></div>
 </div>
 
-<div id="form-container">
-    <div class="input-group">
-        <label>📸 店家外觀照片 (最多3張)</label>
-        <div class="photo-preview-container">
-            <div class="photo-box" onclick="triggerUpload(0)" id="box-0">➕</div>
-            <div class="photo-box" onclick="triggerUpload(1)" id="box-1">➕</div>
-            <div class="photo-box" onclick="triggerUpload(2)" id="box-2">➕</div>
+<div id="sidebar" class="is-collapsed">
+    <div class="mode-toggle">
+        <div id="modeView" class="mode-btn mode-active" onclick="setInteractionMode('view')">🔒 鎖定地圖</div>
+        <div id="modeEdit" class="mode-btn" onclick="setInteractionMode('edit')">➕ 新增地點</div>
+    </div>
+
+    <div class="filter-group">
+        <label style="color: #1a73e8;"><b>🔍 地圖篩選 (分區與時間)</b></label>
+        <div class="flex-row">
+            <select id="mapDistFilter" style="margin-bottom: 5px; background: white;">
+                <option value="all">所有分區</option><option value="漳和">漳和分區</option><option value="員山">員山分區</option><option value="南勢">南勢分區</option><option value="秀安">秀安分區</option>
+            </select>
         </div>
-        <input type="file" id="file-0" accept="image/*" capture="camera" style="display:none;" onchange="handleFile(0, this)">
-        <input type="file" id="file-1" accept="image/*" capture="camera" style="display:none;" onchange="handleFile(1, this)">
-        <input type="file" id="file-2" accept="image/*" capture="camera" style="display:none;" onchange="handleFile(2, this)">
+        <select id="mapTimeFilter" style="background: white;">
+            <option value="all">顯示所有時間</option><option value="today">僅顯示今天新增</option><option value="month">顯示本月新增</option>
+        </select>
     </div>
 
-    <div class="input-group">
-        <label>✏️ 店家名稱</label>
-        <input type="text" id="storeName" placeholder="例如：美廉社中和景安店">
+    <div class="collapse-header" onclick="toggleSidebar()">
+        <span id="collapseTitle" style="font-weight:bold; color:#555;">🔽 展開店家輸入表單</span>
+        <span class="collapse-icon">🔽</span>
     </div>
 
-    <div class="input-group">
-        <label>📝 備註資訊 (非必填)</label>
-        <textarea id="notes" placeholder="可填寫營業時間、聯絡人或具體地址補充..."></textarea>
+    <div id="collapsibleContent">
+        <div id="editFormArea" style="opacity: 0.5; pointer-events: none;">
+            <div class="form-group"><label><b>1. 店家名稱*</b></label><input type="text" id="storeName" placeholder="請輸入店名"></div>
+            <div class="form-group">
+                <label><b>2. 位置定位* (輸入地址或點擊地圖)</b></label>
+                <div class="flex-row">
+                    <button type="button" id="btnGps" class="action-btn">📱 手機定位</button>
+                    <button type="button" id="btnExif" class="action-btn">🖼️ 相片定位</button>
+                </div>
+                
+                <div style="display: flex; gap: 8px; align-items: center; margin-top: 10px;">
+                    <input type="text" id="address" placeholder="輸入地址..." style="margin-top:0; flex: 1;">
+                    <button type="button" id="btnAddrGps" class="action-btn" style="flex: none; padding: 12px; font-weight: bold; background: #ffc107; color: #333;">🔍 轉座標</button>
+                </div>
+                
+                <span id="geoStatus" style="font-size:12px; font-weight:bold; margin-top:8px; display:block; color:#d9534f;">尚未定位 (定位後可拖曳綠色地標微調)</span>
+                
+                <div id="locationCorrection" style="display:none; margin-top:10px; padding:10px; background:#fff3cd; border:1px solid #ffeeba; border-radius:6px;">
+                    <label style="font-size:12px; color:#856404; font-weight:bold;">⚠️ 自動判斷若有誤，可手動修正里別：</label>
+                    <div class="flex-row">
+                        <input type="text" id="district" placeholder="區 (如:中和區)" style="width:40%; padding:8px; font-size:14px;">
+                        <input type="text" id="village" placeholder="里別 (如:建和里)" style="width:60%; padding:8px; font-size:14px;">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label><b>3. 放置物資</b></label><br>
+                <label style="display:block; margin:5px 0;"><input type="checkbox" id="tissueBox" value="V"> 可放面紙盒</label>
+                <label style="display:block; margin:5px 0;"><input type="checkbox" id="banners" value="V"> 可掛布條</label>
+                <label style="display:block; margin:5px 0;"><input type="checkbox" id="boards" value="V"> 可掛看板</label>
+                <input type="text" id="notes" placeholder="其他備註...">
+            </div>
+            <div class="form-group"><label><b>4. 上傳照片 (可多張)</b></label><input type="file" id="photos" accept="image/*" multiple></div>
+            <button id="submitBtn" class="main-btn">🚀 送出資料</button>
+        </div>
     </div>
-    
-    <div style="font-size:11px; color:#aaa; margin-top:-5px; padding-left:5px;">
-        目前定位：<span id="location-text">等待定位...</span>
-    </div>
+    <div id="status" style="text-align:center; font-weight:bold; color:#1a73e8; margin-bottom:20px;"></div>
+    <input type="hidden" id="lat"><input type="hidden" id="lng">
 </div>
 
-<div id="submit-bar">
-    <button class="submit-btn" id="btn-box" onclick="window.submitData(true, false, false)">➕📦 面紙盒</button>
-    <button class="submit-btn" id="btn-banners" onclick="window.submitData(false, true, false)">➕🚩 布條</button>
-    <button class="submit-btn" id="btn-boards" onclick="window.submitData(false, false, true)">➕🧱 看板</button>
-</div>
+<input type="file" id="exifFilePicker" accept="image/jpeg, image/png" style="display:none;">
 
-<div id="loading-overlay">
-    <div class="spinner"></div>
-    <div id="loading-text" style="color:#007bff; font-weight:bold;">資料上傳中...</div>
-</div>
+<div id="lightbox" onclick="this.style.display='none'"><img id="lightboxImg" src=""></div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module">
-    // Firebase 初始化 (保持原樣)
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, serverTimestamp, getDocs, query, orderBy, getDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    const firebaseConfig = { apiKey: "AIzaSyAI2OmA4VUUes3psK5cYJL-xqG_UVxv8iU", authDomain: "friendly-stores.firebaseapp.com", projectId: "friendly-stores", storageBucket: "friendly-stores.firebasestorage.app", databaseURL: "https://friendly-stores-default-rtdb.asia-southeast1.firebasedatabase.app" };
+    const firebaseConfig = { apiKey: "AIzaSyAI2OmA4VUUes3psK5cYJL-xqG_UVxv8iU", authDomain: "friendly-stores.firebaseapp.com", databaseURL: "https://friendly-stores-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "friendly-stores", storageBucket: "friendly-stores.firebasestorage.app", messagingSenderId: "251220478172", appId: "1:251220478172:web:34736127826b569d3a8c19" };
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz9gxnqk55tZ2AU9q0zm3S44m-dgK_aYSJtGYrGkHjREu3-JgPVFEEem7bmbPOcRFEa/exec";
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // --- 全局變數 ---
-    // 預設中心點 (中和區公所)
-    let curLat = 24.998, curLng = 121.503, curVillage = "未定位", curAddress = ""; 
-    let map, chiefBrain = {};
-    const photosBase64 = [null, null, null];
+    const EasterEggConfig = [
+        { count: 10, main: "中和 陳怡君", sub: "✨ 幸福怡起拚 ✨", color: "rgba(255, 255, 255, 0.85)", symbols: ['❤️','💖','🌸','🎀'] },
+        { count: 20, main: "中和好地方", sub: "🌈 怡起更美好 🌈", color: "rgba(255, 192, 203, 0.85)", symbols: ['⭐','🌟','✨','🍀'] },
+        { count: 30, main: "中和 陳怡君", sub: "🔥 怡起努力拚 🔥", color: "rgba(255, 255, 0, 0.8)", symbols: ['💪','🚀','🔥','🎯'] }
+    ];
+    let scrambleCount=0, cycleTimer=null, resumeTimer=null, currentIdx=0, markers={}, marker, interactionMode='view';
 
-    // --- 1. 初始化地圖 (以地圖互動為主) ---
-    function initMap() {
-        // 1. 初始化地圖，設置預設中心 (以地圖為主體)
-        map = L.map('map', { 
-            center: [curLat, curLng], 
-            zoom: 17,
-            zoomControl: false // 手機版關閉縮放按鈕，畫面乾淨
-        });
+    function triggerEasterEgg() {
+        const egg = EasterEggConfig.find(e => e.count === scrambleCount); 
+        if(!egg) return;
         
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+        const overlay = document.getElementById('easterEggOverlay');
+        const main = document.getElementById('eggMain');
+        const sub = document.getElementById('eggSub');
+        
+        overlay.style.background = egg.color; main.innerText = egg.main; sub.innerText = egg.sub; overlay.style.display = 'flex';
+        
+        for(let i=0; i<40; i++) { 
+            const c = document.createElement('div'); c.className = 'confetti'; c.innerHTML = egg.symbols[Math.floor(Math.random() * egg.symbols.length)]; 
+            c.style.left = Math.random() * 100 + 'vw'; 
+            c.style.animationDelay = (Math.random() * 1.5) + 's'; 
+            c.style.animationDuration = (Math.random() * 3 + 2.5) + 's'; 
+            c.style.transform = `scale(${Math.random() * 0.5 + 0.8})`; 
+            overlay.appendChild(c); 
+        }
 
-        // 2. 監聽地圖移動結束事件 (當使用者停止拖曳地圖時)
-        map.on('moveend', () => {
-            const center = map.getCenter();
-            curLat = center.lat;
-            curLng = center.lng;
-            updateLocationInfo(curLat, curLng); // 根據新的中心點抓取里別/地址
+        for(let i=0; i<50; i++) { 
+            const c = document.createElement('div'); c.className = 'confetti'; c.innerHTML = egg.symbols[Math.floor(Math.random() * egg.symbols.length)]; 
+            c.style.left = Math.random() * 100 + 'vw'; 
+            c.style.animationDelay = (Math.random() * 1.5 + 2.5) + 's'; 
+            c.style.animationDuration = (Math.random() * 3 + 2.5) + 's'; 
+            c.style.transform = `scale(${Math.random() * 0.5 + 0.8})`; 
+            overlay.appendChild(c); 
+        }
+        
+        setTimeout(() => { 
+            overlay.style.display = 'none'; 
+            overlay.querySelectorAll('.confetti').forEach(el => el.remove()); 
+            if(scrambleCount >= 30) scrambleCount = 0; 
+        }, 5500);
+    }
+
+    window.photoAction = function(img) { document.getElementById('lightboxImg').src = img.src; document.getElementById('lightbox').style.display = 'flex'; };
+    window.openLightbox = function(storeId) {
+        const container = document.getElementById(`stack-${storeId}`);
+        if(container) {
+            const activeImg = container.querySelector('.stack-photo.active') || container.querySelector('.stack-photo');
+            if(activeImg) window.photoAction(activeImg);
+        }
+    };
+
+    window.scramblePhotos = function(storeId) {
+        scrambleCount++; triggerEasterEgg(); stopCycle(); 
+        const container = document.getElementById(`stack-${storeId}`), photos = container.querySelectorAll('.stack-photo');
+        photos.forEach((p) => { p.classList.remove('active'); const rot = (Math.random() * 180)-90, tx = (Math.random()*200)-100, ty = (Math.random()*200)-100, scale = 0.7 + (Math.random()*0.6); p.style.transform = `rotate(${rot}deg) translate(${tx}px, ${ty}px) scale(${scale})`; p.style.zIndex = Math.floor(Math.random()*100); });
+        clearTimeout(resumeTimer); resumeTimer = setTimeout(() => { photos.forEach((p) => { p.style.transform = `rotate(${p.dataset.tidyRot}deg) translate(${p.dataset.tidyTx}px, ${p.dataset.tidyTy}px) scale(1)`; p.style.zIndex = p.dataset.tidyZ; }); startCycle(container); }, 5000);
+    };
+    function bringToFront(img) { img.parentElement.querySelectorAll('.stack-photo').forEach(p => p.classList.remove('active')); img.classList.add('active'); }
+    function stopCycle() { if(cycleTimer) clearInterval(cycleTimer); }
+    function startCycle(container) { stopCycle(); const photos = Array.from(container.querySelectorAll('.stack-photo')); if (photos.length < 2) { if(photos.length==1) bringToFront(photos[0]); return; } cycleTimer = setInterval(() => { currentIdx = (currentIdx + 1) % photos.length; bringToFront(photos[currentIdx]); }, 1800); }
+
+    var map = L.map('map', { zoomControl: false }).setView([24.993, 121.496], 13.5); 
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© CARTO' }).addTo(map);
+    L.control.zoom({ position: 'topleft' }).addTo(map);
+    var HomeBtn = L.Control.extend({ options: { position: 'topleft' }, onAdd: function (map) { var btn = L.DomUtil.create('div', 'home-btn'); btn.innerHTML = '🏠'; btn.onclick = function() { map.setView([24.993, 121.496], 13.5); }; return btn; } });
+    map.addControl(new HomeBtn());
+
+    window.setInteractionMode = (mode) => {
+        interactionMode = mode;
+        document.getElementById('modeView').classList.toggle('mode-active', mode === 'view');
+        document.getElementById('modeEdit').classList.toggle('mode-active', mode === 'edit');
+        document.getElementById('editFormArea').style.opacity = (mode === 'edit' ? '1' : '0.4');
+        document.getElementById('editFormArea').style.pointerEvents = (mode === 'edit' ? 'auto' : 'none');
+        if(mode === 'edit') toggleSidebar(true);
+        if(mode === 'view' && marker) map.removeLayer(marker);
+    };
+    window.toggleSidebar = (forceExpand = false) => {
+        const s = document.getElementById('sidebar'); const title = document.getElementById('collapseTitle');
+        if(forceExpand || s.classList.contains('is-collapsed')) { s.classList.remove('is-collapsed'); s.classList.add('is-expanded'); title.innerText = "🔼 縮小店家輸入表單"; } 
+        else { s.classList.add('is-collapsed'); s.classList.remove('is-expanded'); title.innerText = "🔽 展開店家輸入表單"; }
+    };
+
+    async function loadExistingStores() {
+        map.eachLayer(l => { if(l instanceof L.Marker && l !== marker) map.removeLayer(l); });
+        const timeFilter = document.getElementById('mapTimeFilter').value;
+        const distFilter = document.getElementById('mapDistFilter').value;
+        
+        const distCoords = { "漳和": [25.0019, 121.4958], "員山": [25.0045, 121.4815], "南勢": [24.9840, 121.5080], "秀安": [24.9935, 121.5165] };
+        if(distFilter !== 'all' && distCoords[distFilter]) map.setView(distCoords[distFilter], 15);
+
+        const snap = await getDocs(query(collection(db, "friendly_stores"), orderBy("createdAt", "desc")));
+        snap.forEach(docSnap => {
+            const d = docSnap.data(), id = docSnap.id, jsDate = d.createdAt?.toDate() || new Date();
+            let timeMatch = (timeFilter === 'all');
+            const now = new Date();
+            if(timeFilter === 'today' && jsDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate())) timeMatch = true;
+            if(timeFilter === 'month' && jsDate >= new Date(now.getFullYear(), now.getMonth(), 1)) timeMatch = true;
+            let distMatch = (distFilter === 'all' || d.district === distFilter);
+
+            if (timeMatch && distMatch && d.lat && d.lng) {
+                const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}&travelmode=two-wheeler`;
+                
+                let items = []; 
+                if(d.tissues === 'V' || d.tissueBox === 'V') items.push('可放面紙盒'); 
+                if(d.banners === 'V') items.push('可掛布條'); 
+                if(d.boards === 'V') items.push('可掛看板');
+                
+                let itemsHtml = items.length > 0 ? `<div class="item-tag-container">${items.map(i => `<span class="item-tag">${i}</span>`).join('')}</div>` : '';
+                const hasPhotos = d.photos && d.photos.length > 0;
+                let galleryHtml = hasPhotos ? `<div class="photo-stack-container" id="stack-${id}">` : `<div style="margin-bottom:10px;"></div>`;
+                if (hasPhotos) {
+                    d.photos.forEach((url, idx) => {
+                        const rot = (Math.random() * 40) - 20, angle = (idx / d.photos.length) * 360, scatter = (d.photos.length > 4 ? 45 : 30);
+                        galleryHtml += `<img src="${url}" class="stack-photo" data-tidy-rot="${rot}" data-tidy-tx="${Math.cos(angle * Math.PI / 180) * scatter}" data-tidy-ty="${Math.sin(angle * Math.PI / 180) * scatter}" data-tidy-z="${idx}" style="transform: rotate(${rot}deg) translate(${Math.cos(angle * Math.PI / 180) * scatter}px, ${Math.sin(angle * Math.PI / 180) * scatter}px); z-index: ${idx}; --active-rot: ${(d.photos.length==1?rot:0)}deg;" onclick="scramblePhotos('${id}')">`;
+                    });
+                    galleryHtml += `</div>`;
+                }
+                const displayLoc = d.address ? d.address : `${d.lat.toFixed(5)}, ${d.lng.toFixed(5)}`;
+                
+                const scrambleHtml = hasPhotos ? `<button class="popup-btn scramble-btn" onclick="openLightbox('${id}')">🔍 放大</button>` : '';
+                
+                let popupHtml = `<div style="text-align:center; min-width:${hasPhotos?280:200}px;"><b style="font-size:18px;">${d.storeName}</b><span class="popup-addr">${displayLoc}</span>${itemsHtml}${galleryHtml}<div style="margin-top:10px; display:flex; justify-content:center; gap:5px;"><a href="${navUrl}" target="_blank" class="popup-btn nav-link">🛵 導航</a>${scrambleHtml}</div></div>`;
+                const m = L.marker([d.lat, d.lng]).addTo(map).bindPopup(popupHtml);
+                m.on('popupopen', () => { if(hasPhotos) { currentIdx = 0; startCycle(document.getElementById(`stack-${id}`)); } });
+                m.on('popupclose', () => { stopCycle(); clearTimeout(resumeTimer); });
+                markers[id] = m;
+            }
         });
 
-        // 3. (輔助) 嘗試用 GPS 初始定位，僅做為地圖中心移動，不鎖定座標
-        if ("geolocation" in navigator) {
-            navigator.geolocation.getCurrentPosition((position) => {
-                const gpsLat = position.coords.latitude;
-                const gpsLng = position.coords.longitude;
-                // 將地圖中心平滑移動到 GPS 位置 (使用者若覺得錯，可以立刻拖回來)
-                map.flyTo([gpsLat, gpsLng], 18);
-            }, (error) => {
-                console.warn("GPS 定位失敗或被拒絕，使用預設中心。");
-                updateLocationInfo(curLat, curLng); // 使用預設中心抓取資訊
-            }, { enableHighAccuracy: true, timeout: 5000 });
-        } else {
-            updateLocationInfo(curLat, curLng); // 不支援 GPS，直接用預設中心抓資訊
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetId = urlParams.get('id');
+        if (targetId && markers[targetId]) {
+            const targetMarker = markers[targetId];
+            map.flyTo(targetMarker.getLatLng(), 18, { animate: true, duration: 1 });
+            setTimeout(() => { targetMarker.openPopup(); }, 600);
+            window.history.replaceState({}, document.title, window.location.pathname);
         }
     }
 
-    // --- 2. 根據經緯度抓取政府公開資料 (里別、門牌) ---
-    async function updateLocationInfo(lat, lng) {
-        document.getElementById('location-text').innerText = "定位中...";
+    // ==== 地址轉 GPS 功能 ====
+    async function fetchAddressToGps() {
+        let addr = document.getElementById('address').value; 
+        if(!addr || addr.length < 3) return alert("請輸入完整地址");
+        if(!addr.includes("市") && !addr.includes("縣")) addr = "新北市中和區" + addr;
+        
+        document.getElementById('btnAddrGps').innerText = "⏳ 尋找中";
+        
+        try {
+            // 使用你原本提供的 GAS API
+            const res = await fetch(GAS_API_URL + "?address=" + encodeURIComponent(addr));
+            const data = await res.json();
+            if(data.status==='OK') {
+                updateLocation(data.results[0].geometry.location.lat, data.results[0].geometry.location.lng);
+            } else {
+                alert("找不到該地址的座標，請檢查地址是否正確。");
+            }
+        } catch(e) { 
+            console.error(e);
+            alert("地址轉換 API 暫時無法連線，請嘗試使用地圖點擊定位。");
+        }
+        document.getElementById('btnAddrGps').innerText = "🔍 轉座標";
+    }
+
+    // 綁定按鈕點擊與 Enter 鍵
+    document.getElementById('btnAddrGps').onclick = fetchAddressToGps;
+    document.getElementById('address').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') fetchAddressToGps();
+    });
+
+    function updateLocation(lat, lng) {
+        if (marker) map.removeLayer(marker);
+        marker = L.marker([lat, lng], {draggable: true, icon: L.icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png', shadowSize: [41, 41], iconSize: [25, 41], iconAnchor: [12, 41]})}).addTo(map);
+        map.setView([lat, lng], 18);
+        document.getElementById('lat').value = lat; document.getElementById('lng').value = lng;
+        autoDetectVillage(lat, lng);
+        
+        // ★ 重點：拖曳綠色地標時，會即時更新座標與里別
+        marker.on('dragend', function(event){
+            var pos = event.target.getLatLng();
+            document.getElementById('lat').value = pos.lat;
+            document.getElementById('lng').value = pos.lng;
+            autoDetectVillage(pos.lat, pos.lng);
+        });
+    }
+
+    async function autoDetectVillage(lat, lng) {
+        document.getElementById('geoStatus').innerHTML = `🔄 正在解析里別...`;
+        document.getElementById('geoStatus').style.color = "#ffc107";
+        
         try {
             const res = await fetch(`https://api.nlsc.gov.tw/other/TownVillagePointQuery/${lng}/${lat}`);
-            const text = await res.text();
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(text, "text/xml");
-            const villageName = xmlDoc.getElementsByTagName("villageName")[0]?.textContent;
-            const townName = xmlDoc.getElementsByTagName("townName")[0]?.textContent;
+            const villageName = new DOMParser().parseFromString(await res.text(), "text/xml").getElementsByTagName("villageName")[0]?.textContent;
             
-            if(villageName && townName) {
-                curVillage = villageName;
-                document.getElementById('location-text').innerText = `${townName}${curVillage}`;
+            if (villageName) {
+                document.getElementById('village').value = villageName;
+                const chiefRef = doc(db, "chief_data", villageName);
+                const chiefSnap = await getDoc(chiefRef);
+                let district = "未知";
                 
-                // 額外嘗試抓取大概地址 (選用，增加後台辨識度)
-                fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=zh-TW`)
-                    .then(r => r.json())
-                    .then(data => {
-                        curAddress = data.display_name || "";
-                    }).catch(e => {});
-            } else {
-                curVillage = "中和區外?";
-                document.getElementById('location-text').innerText = curVillage;
+                if (chiefSnap.exists()) {
+                    district = chiefSnap.data().district || "未知";
+                }
+                
+                document.getElementById('district').value = district;
+                document.getElementById('geoStatus').innerHTML = `✅ 自動定位完成！<br><span style='font-size:11px; font-weight:normal; color:#555;'>(📍 如果綠色地標位置有偏差，請直接拖曳地標修正)</span>`;
+                document.getElementById('geoStatus').style.color = "#28a745";
+                
+                // 顯示手動修正區塊
+                document.getElementById('locationCorrection').style.display = 'block';
             }
-        } catch(e) {
-            document.getElementById('location-text').innerText = "定位失敗 (網路問題)";
+        } catch (e) { 
+            console.error("定位解析失敗:", e); 
         }
     }
 
-    // --- 圖片處理邏輯 (保持原樣) ---
-    window.triggerUpload = (index) => {
-        if(photosBase64[index]) {
-            if(confirm("要刪除這張照片嗎？")) {
-                photosBase64[index] = null;
-                const box = document.getElementById(`box-${index}`);
-                box.innerHTML = '➕'; box.classList.remove('has-img');
-                document.getElementById(`file-${index}`).value = ''; 
+    map.on('click', e => { 
+        if(interactionMode === 'edit') updateLocation(e.latlng.lat, e.latlng.lng); 
+    });
+
+    document.getElementById('btnGps').onclick = () => navigator.geolocation.getCurrentPosition(p => updateLocation(p.coords.latitude, p.coords.longitude));
+    
+    document.getElementById('btnExif').onclick = () => {
+        document.getElementById('exifFilePicker').click();
+    };
+
+    document.getElementById('exifFilePicker').onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        EXIF.getData(file, function() {
+            const latData = EXIF.getTag(this, "GPSLatitude");
+            const lngData = EXIF.getTag(this, "GPSLongitude");
+            const latRef = EXIF.getTag(this, "GPSLatitudeRef") || "N";
+            const lngRef = EXIF.getTag(this, "GPSLongitudeRef") || "E";
+
+            if (latData && lngData) {
+                const lat = convertDMSToDD(latData[0], latData[1], latData[2], latRef);
+                const lng = convertDMSToDD(lngData[0], lngData[1], lngData[2], lngRef);
+                updateLocation(lat, lng);
+                alert("✅ 成功從照片讀取座標！\n請確認綠色地標位置是否正確，若有偏差可直接拖曳地標修正。");
             }
-        } else {
-            document.getElementById(`file-${index}`).click();
-        }
+        });
+        e.target.value = '';
     };
 
-    window.handleFile = (index, input) => {
-        const file = input.files[0]; if(!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const imgHtml = `<img src="${e.target.result}"><div class="remove-btn">×</div>`;
-            const box = document.getElementById(`box-${index}`);
-            box.innerHTML = imgHtml; box.classList.add('has-img');
-            photosBase64[index] = e.target.result;
-        };
-        reader.readAsDataURL(file);
-    };
+    function convertDMSToDD(degrees, minutes, seconds, direction) {
+        let dd = Number(degrees) + (Number(minutes) / 60) + (Number(seconds) / 3600);
+        if (direction === "S" || direction === "W") { dd = dd * -1; }
+        return dd;
+    }
 
-    // --- 3. 提交資料 (座標改為抓取 curLat/curLng) ---
-    window.submitData = async (box, banners, boards) => {
-        const name = document.getElementById('storeName').value.trim();
-        if(!name) { alert("⚠️ 請填寫店家名稱！"); return; }
-        if(!curLat || curVillage === "未定位") { alert("⚠️ 等待地圖定位完成..."); return; }
+    const compress = (file) => new Promise(res => { const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = e => { const img = new Image(); img.src = e.target.result; img.onload = () => { const cvs = document.createElement('canvas'); const scale = Math.min(1, 1024/img.width); cvs.width = img.width*scale; cvs.height = img.height*scale; cvs.getContext('2d').drawImage(img,0,0,cvs.width,cvs.height); res(cvs.toDataURL('image/jpeg',0.8)); }; }; });
 
-        const overlay = document.getElementById('loading-overlay');
-        overlay.style.display = 'flex';
-
+    document.getElementById('submitBtn').onclick = async () => {
+        const btn = document.getElementById('submitBtn'), storeName = document.getElementById('storeName').value, lat = document.getElementById('lat').value;
+        if(!storeName || !lat) return alert("❌ 請填寫店名與定位！");
+        btn.disabled = true; btn.innerText = "🚀 正在儲存...";
         try {
+            let urls = []; const files = document.getElementById('photos').files;
+            if(files.length > 0) {
+                let pArr = []; for(let i=0; i<Math.min(files.length, 8); i++) pArr.push(await compress(files[i]));
+                const res = await fetch(GAS_API_URL, { method:'POST', body: JSON.stringify({ storeName, photos: pArr }) });
+                urls = (await res.json()).urls;
+            }
             await addDoc(collection(db, "friendly_stores"), {
-                storeName: name,
-                notes: document.getElementById('notes').value.trim(),
-                tissueBox: box ? "V" : "",
-                banners: banners ? "V" : "",
-                boards: boards ? "V" : "",
-                photos: photosBase64.filter(p => p !== null),
-                lat: curLat, // 地圖中心的緯度
-                lng: curLng, // 地圖中心的經度
-                village: curVillage,
-                address: curAddress, // 可選的粗略地址
-                district: "中和區",
-                createdAt: serverTimestamp()
+                storeName, address: document.getElementById('address').value,
+                lat: parseFloat(lat), lng: parseFloat(document.getElementById('lng').value),
+                district: document.getElementById('district').value || "未知", 
+                village: document.getElementById('village').value || "未定位",
+                tissues: "", 
+                tissueBox: document.getElementById('tissueBox').checked ? "V" : "", 
+                banners: document.getElementById('banners').checked ? "V" : "", 
+                boards: document.getElementById('boards').checked ? "V" : "",
+                notes: document.getElementById('notes').value, photos: urls, createdAt: serverTimestamp()
             });
-            alert("🎉 感謝募集！資料已成功上傳。");
-            location.reload(); 
-        } catch (e) {
-            alert("❌ 上傳失敗，請稍後再試。");
-            overlay.style.display = 'none';
-        }
+            alert("✅ 新增成功！");
+            document.getElementById('storeName').value = ""; document.getElementById('address').value = ""; document.getElementById('notes').value = ""; document.getElementById('photos').value = "";
+            document.querySelectorAll('input[type=checkbox]').forEach(el => el.checked = false);
+            document.getElementById('geoStatus').innerText = "尚未定位"; document.getElementById('geoStatus').style.color = "#d9534f";
+            document.getElementById('locationCorrection').style.display = 'none';
+            if(marker) map.removeLayer(marker); loadExistingStores();
+        } catch(e) { alert("❌ 錯誤: " + e.message); }
+        btn.disabled = false; btn.innerText = "🚀 送出資料";
     };
 
-    // 啟動地圖
-    initMap();
-
+    document.getElementById('mapTimeFilter').onchange = loadExistingStores;
+    document.getElementById('mapDistFilter').onchange = loadExistingStores;
+    loadExistingStores();
 </script>
 </body>
 </html>
