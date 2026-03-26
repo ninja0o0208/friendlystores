@@ -6,7 +6,6 @@
     <title>友善店家佈點地圖</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
     <style>
         body { margin: 0; padding: 0; font-family: '微軟正黑體', sans-serif; display: flex; height: 100vh; flex-direction: row; overflow: hidden; }
         #map { flex: 2; height: 100%; z-index: 1; transition: flex 0.4s ease; }
@@ -64,7 +63,7 @@
         <div id="modeEdit" class="mode-btn" onclick="setInteractionMode('edit')">➕ 新增地點</div>
     </div>
 
-    <div class="filter-group">
+    <div id="filterGroup" class="filter-group">
         <label style="color: #1a73e8;"><b>🔍 地圖篩選 (分區與時間)</b></label>
         <div class="flex-row">
             <select id="mapDistFilter" style="margin-bottom: 5px; background: white;">
@@ -87,8 +86,7 @@
             <div class="form-group">
                 <label><b>2. 位置定位* (輸入地址或點擊地圖)</b></label>
                 <div class="flex-row">
-                    <button type="button" id="btnGps" class="action-btn">📱 手機定位</button>
-                    <button type="button" id="btnExif" class="action-btn">🖼️ 相片定位</button>
+                    <button type="button" id="btnGps" class="action-btn" style="width: 100%;">📱 手機定位</button>
                 </div>
                 
                 <div style="display: flex; gap: 8px; align-items: center; margin-top: 10px;">
@@ -120,8 +118,6 @@
     <div id="status" style="text-align:center; font-weight:bold; color:#1a73e8; margin-bottom:20px;"></div>
     <input type="hidden" id="lat"><input type="hidden" id="lng">
 </div>
-
-<input type="file" id="exifFilePicker" accept="image/jpeg, image/png" style="display:none;">
 
 <div id="lightbox" onclick="this.style.display='none'"><img id="lightboxImg" src=""></div>
 
@@ -205,11 +201,16 @@
         interactionMode = mode;
         document.getElementById('modeView').classList.toggle('mode-active', mode === 'view');
         document.getElementById('modeEdit').classList.toggle('mode-active', mode === 'edit');
+        
+        // 關鍵：在新增模式下，完全隱藏地圖篩選區塊
+        document.getElementById('filterGroup').style.display = (mode === 'edit' ? 'none' : 'block');
+
         document.getElementById('editFormArea').style.opacity = (mode === 'edit' ? '1' : '0.4');
         document.getElementById('editFormArea').style.pointerEvents = (mode === 'edit' ? 'auto' : 'none');
         if(mode === 'edit') toggleSidebar(true);
         if(mode === 'view' && marker) map.removeLayer(marker);
     };
+    
     window.toggleSidebar = (forceExpand = false) => {
         const s = document.getElementById('sidebar'); const title = document.getElementById('collapseTitle');
         if(forceExpand || s.classList.contains('is-collapsed')) { s.classList.remove('is-collapsed'); s.classList.add('is-expanded'); title.innerText = "🔼 縮小店家輸入表單"; } 
@@ -273,7 +274,6 @@
         }
     }
 
-    // ==== 地址轉 GPS 功能 ====
     async function fetchAddressToGps() {
         let addr = document.getElementById('address').value; 
         if(!addr || addr.length < 3) return alert("請輸入完整地址");
@@ -282,7 +282,6 @@
         document.getElementById('btnAddrGps').innerText = "⏳ 尋找中";
         
         try {
-            // 使用你原本提供的 GAS API
             const res = await fetch(GAS_API_URL + "?address=" + encodeURIComponent(addr));
             const data = await res.json();
             if(data.status==='OK') {
@@ -297,7 +296,6 @@
         document.getElementById('btnAddrGps').innerText = "🔍 轉座標";
     }
 
-    // 綁定按鈕點擊與 Enter 鍵
     document.getElementById('btnAddrGps').onclick = fetchAddressToGps;
     document.getElementById('address').addEventListener('keypress', function (e) {
         if (e.key === 'Enter') fetchAddressToGps();
@@ -310,7 +308,6 @@
         document.getElementById('lat').value = lat; document.getElementById('lng').value = lng;
         autoDetectVillage(lat, lng);
         
-        // ★ 重點：拖曳綠色地標時，會即時更新座標與里別
         marker.on('dragend', function(event){
             var pos = event.target.getLatLng();
             document.getElementById('lat').value = pos.lat;
@@ -341,7 +338,6 @@
                 document.getElementById('geoStatus').innerHTML = `✅ 自動定位完成！<br><span style='font-size:11px; font-weight:normal; color:#555;'>(📍 如果綠色地標位置有偏差，請直接拖曳地標修正)</span>`;
                 document.getElementById('geoStatus').style.color = "#28a745";
                 
-                // 顯示手動修正區塊
                 document.getElementById('locationCorrection').style.display = 'block';
             }
         } catch (e) { 
@@ -353,37 +349,12 @@
         if(interactionMode === 'edit') updateLocation(e.latlng.lat, e.latlng.lng); 
     });
 
-    document.getElementById('btnGps').onclick = () => navigator.geolocation.getCurrentPosition(p => updateLocation(p.coords.latitude, p.coords.longitude));
-    
-    document.getElementById('btnExif').onclick = () => {
-        document.getElementById('exifFilePicker').click();
+    document.getElementById('btnGps').onclick = () => {
+        navigator.geolocation.getCurrentPosition(p => {
+            updateLocation(p.coords.latitude, p.coords.longitude);
+            alert("📍 已取得手機概略位置！\n\n⚠️ 注意：GPS 定位可能會有誤差，請務必在畫面上「放大地圖」，並將「綠色地標」手動拖曳到正確的店家大門口。");
+        }, e => alert("❌ 無法取得定位，請直接在地圖上點擊店家位置。"));
     };
-
-    document.getElementById('exifFilePicker').onchange = function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        EXIF.getData(file, function() {
-            const latData = EXIF.getTag(this, "GPSLatitude");
-            const lngData = EXIF.getTag(this, "GPSLongitude");
-            const latRef = EXIF.getTag(this, "GPSLatitudeRef") || "N";
-            const lngRef = EXIF.getTag(this, "GPSLongitudeRef") || "E";
-
-            if (latData && lngData) {
-                const lat = convertDMSToDD(latData[0], latData[1], latData[2], latRef);
-                const lng = convertDMSToDD(lngData[0], lngData[1], lngData[2], lngRef);
-                updateLocation(lat, lng);
-                alert("✅ 成功從照片讀取座標！\n請確認綠色地標位置是否正確，若有偏差可直接拖曳地標修正。");
-            }
-        });
-        e.target.value = '';
-    };
-
-    function convertDMSToDD(degrees, minutes, seconds, direction) {
-        let dd = Number(degrees) + (Number(minutes) / 60) + (Number(seconds) / 3600);
-        if (direction === "S" || direction === "W") { dd = dd * -1; }
-        return dd;
-    }
 
     const compress = (file) => new Promise(res => { const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = e => { const img = new Image(); img.src = e.target.result; img.onload = () => { const cvs = document.createElement('canvas'); const scale = Math.min(1, 1024/img.width); cvs.width = img.width*scale; cvs.height = img.height*scale; cvs.getContext('2d').drawImage(img,0,0,cvs.width,cvs.height); res(cvs.toDataURL('image/jpeg',0.8)); }; }; });
 
