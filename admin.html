@@ -12,25 +12,34 @@
         .filter-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #eee; font-size: 14px; }
         select, input[type="text"] { padding: 8px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; }
         .table-container { background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow-x: auto; }
+        
         table { width: 100%; border-collapse: collapse; min-width: 850px; }
         th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; vertical-align: middle; }
         th { background: #007bff; color: white; position: sticky; top: 0; z-index: 10; white-space: nowrap; }
+        
         .tag { display: inline-flex; align-items: center; justify-content: center; background: #28a745; color: white; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; margin: 2px; }
+        
         .btn-link { display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; text-decoration: none; font-weight: bold; color: white !important; cursor: pointer; border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.1); white-space: nowrap; }
+        
         .loc-btn { background: #0ea5e9; padding: 2px 6px; font-size: 11px; border-radius: 6px; } 
         .action-btn { padding: 5px 12px; font-size: 12px; }
         .edit-btn { background: #ffc107; color: #333 !important; } 
         .del-btn { background: #dc3545; }
+        
         .action-column { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; width: max-content; }
+        
         .chief-tag { display: inline-block; padding: 4px 12px; border-radius: 20px; border: 1px solid #ddd; font-weight: bold; font-size: 13px; margin-top: 4px; white-space: nowrap; }
         .chief-female { background-color: #ffeef2; color: #d63384; } .chief-male { background-color: #f0f7ff; color: #007bff; }
+        
         .photo-flow { display: flex; flex-wrap: wrap; gap: 4px; max-width: 140px; }
         .photo-thumb { width: 42px; height: 42px; border-radius: 4px; object-fit: cover; border: 1px solid #eee; margin: 0; }
+        
         #editModal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; box-shadow:0 0 25px rgba(0,0,0,0.3); border-radius:12px; z-index:100; width:500px; max-width: 95%; max-height: 90vh; overflow-y: auto; }
         .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:99; }
+        
         #editMap { width: 100%; height: 200px; border-radius: 8px; border: 1px solid #ccc; margin-bottom: 5px; z-index: 1; }
+        
         .api-result-text { font-size: 13px; color: #0056b3; font-weight: bold; margin-bottom: 10px; min-height: 18px; }
-        .nlsc-btn { background: #1a73e8; color: white !important; padding: 4px 8px; border-radius: 4px; font-size: 12px; text-decoration: none; display: inline-block; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -41,10 +50,12 @@
         <span id="dataCount" style="font-size:14px; color:#666;"></span>
         <button onclick="exportToExcel()" style="margin-left: auto; background: #107c41; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">📥 匯出 Excel</button>
     </div>
+    
     <div class="filter-row" style="border-top: none;">
         <div>📅 <select id="timeFilter" onchange="applyFilters()"><option value="all">完整顯示</option><option value="today">今天新增</option></select></div>
         <div>分區 <select id="distFilter" onchange="applyFilters()"><option value="all">所有分區</option><option value="漳和">漳和</option><option value="員山">員山</option><option value="秀安">秀安</option><option value="南勢">南勢</option></select></div>
     </div>
+    
     <div class="filter-row">
         <b>📦 物資：</b>
         <label><input type="checkbox" id="fBox" onchange="applyFilters()"> 面紙盒</label>
@@ -75,19 +86,28 @@
 <div id="editModal">
     <h3 style="margin-top:0;">✏️ 編輯店家資訊</h3>
     <input type="hidden" id="editId">
+    
     <label>店名</label> <input type="text" id="editName" style="width:100%; margin-bottom:12px;">
+    
     <label>地址與座標比對</label>
     <div style="display:flex; gap:8px; margin-bottom:4px;">
         <input type="text" id="editAddr" style="flex:1;">
         <button type="button" onclick="adminFetchGps()" id="adminBtnGps" style="background:#ffc107; color:#333; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">🔍 轉座標比對</button>
     </div>
+    
     <div id="apiVillageResult" class="api-result-text"></div>
+
     <div id="editMap"></div>
+    <div style="font-size:11px; color:#d9534f; margin-bottom:12px; text-align:center; font-weight:bold;">
+        🟢 綠色：實際儲存位置 (可拖曳修改) ｜ 🔵 藍色：地址 API 定位點
+    </div>
+
     <div style="display:flex; gap:10px; margin-bottom:12px;">
         <div style="flex:1;"><label>緯度 (Lat)</label><input type="text" id="editLat" style="width:100%;"></div>
         <div style="flex:1;"><label>經度 (Lng)</label><input type="text" id="editLng" style="width:100%;"></div>
         <div style="flex:1;"><label>儲存里別</label><input type="text" id="editVillage" style="width:100%; background:#fffde7;"></div>
     </div>
+    
     <div style="margin-bottom:12px;">
         <b>物資：</b><br>
         <label><input type="checkbox" id="editBox"> 面紙盒</label> 
@@ -105,11 +125,15 @@
 
     const firebaseConfig = { apiKey: "AIzaSyAI2OmA4VUUes3psK5cYJL-xqG_UVxv8iU", authDomain: "friendly-stores.firebaseapp.com", projectId: "friendly-stores", storageBucket: "friendly-stores.firebasestorage.app", databaseURL: "https://friendly-stores-default-rtdb.asia-southeast1.firebasedatabase.app" };
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz9gxnqk55tZ2AU9q0zm3S44m-dgK_aYSJtGYrGkHjREu3-JgPVFEEem7bmbPOcRFEa/exec";
+    
     const app = initializeApp(firebaseConfig); 
     const db = getFirestore(app);
     let allData = [], chiefBrain = {};
     window.currentFilteredData = [];
-    let adminMap = null, adminMarker = null, addressMarker = null;
+    
+    let adminMap = null;
+    let adminMarker = null;   
+    let addressMarker = null; 
 
     async function loadAll() {
         const cSnap = await getDocs(collection(db, "chief_data"));
@@ -120,16 +144,22 @@
     }
 
     window.applyFilters = () => {
-        const t = document.getElementById('timeFilter').value, d = document.getElementById('distFilter').value;
-        const fBox = document.getElementById('fBox').checked, fBanners = document.getElementById('fBanners').checked, fBoards = document.getElementById('fBoards').checked;
+        const t = document.getElementById('timeFilter').value;
+        const d = document.getElementById('distFilter').value;
+        const fBox = document.getElementById('fBox').checked;
+        const fBanners = document.getElementById('fBanners').checked;
+        const fBoards = document.getElementById('fBoards').checked;
+
         const filtered = allData.filter(x => {
             let tMatch = (t==='all') || (x.jsDate.toDateString() === new Date().toDateString());
             let c = chiefBrain[x.village];
             let distMatch = (d==='all') || (c && c.district === d);
+            
             let sMatch = true;
             if (fBox && x.tissueBox !== 'V' && x.tissues !== 'V') sMatch = false;
             if (fBanners && x.banners !== 'V') sMatch = false;
             if (fBoards && x.boards !== 'V') sMatch = false;
+
             return tMatch && distMatch && sMatch;
         });
         window.currentFilteredData = filtered;
@@ -140,65 +170,194 @@
         const list = document.getElementById('storeList'); list.innerHTML = '';
         data.forEach(x => {
             let chief = chiefBrain[x.village] || { district: x.district || "未知", name: "待查", gender: "M" };
-            let items = []; if(x.tissues === 'V' || x.tissueBox === 'V') items.push('面紙盒'); if(x.banners === 'V') items.push('布條'); if(x.boards === 'V') items.push('看板');
-            list.innerHTML += `<tr><td><div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px;"><b style="font-size:16px; color:#0056b3;">${x.storeName}</b><a href="index.html?id=${x.id}" class="btn-link loc-btn" target="_blank">🌍 檢視</a></div><div style="max-width:140px; margin-top:6px; font-size:12px; color:#555;">${x.address || '無地址'}</div></td><td>${items.map(i=>`<span class="tag">${i}</span>`).join('')}</td><td>${x.notes || ''}</td><td><div class="photo-flow">${(x.photos||[]).map(p=>`<a href="${p}" target="_blank"><img src="${p}" class="photo-thumb"></a>`).join('')}</div></td><td style="font-family:monospace; font-size:12px;">Lat:${x.lat?.toFixed(5)}<br>Lng:${x.lng?.toFixed(5)}</td><td><span style="font-weight:bold;">${x.village}</span><br><span class="chief-tag ${chief.gender==='F'?'chief-female':'chief-male'}">${chief.name}</span></td><td><div class="action-column"><button class="btn-link action-btn edit-btn" onclick="openEdit('${x.id}')">✏️ 修改</button><button class="btn-link action-btn del-btn" onclick="deleteStore('${x.id}', '${x.storeName}')">🗑️ 刪除</button></div></td><td></td></tr>`;
+            let items = []; 
+            if(x.tissues === 'V' || x.tissueBox === 'V') items.push('面紙盒'); 
+            if(x.banners === 'V') items.push('布條'); 
+            if(x.boards === 'V') items.push('看板');
+            
+            list.innerHTML += `<tr>
+                <td>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 6px;">
+                        <b style="font-size: 16px; color: #0056b3; word-break: break-all;">${x.storeName}</b>
+                        <a href="index.html?id=${x.id}" class="btn-link loc-btn" style="margin:0; flex-shrink: 0;" target="_blank">🌍 檢視</a>
+                    </div>
+                    <div style="max-width: 140px; margin-top: 6px; font-size: 12px; color: #555; line-height: 1.4; word-wrap: break-word; white-space: normal;">
+                        ${x.address || '<i style="color:#aaa;">無地址</i>'}
+                    </div>
+                </td>
+                <td><div style="display: grid; grid-template-rows: repeat(3, auto); grid-auto-flow: column; gap: 4px; justify-content: start;">${items.map(i=>`<span class="tag">${i}</span>`).join('')}</div></td>
+                <td><div style="max-width: 130px; font-size: 13px; color: #444; word-wrap: break-word; white-space: normal;">${x.notes || '<i style="color:#ccc;">無</i>'}</div></td>
+                <td><div class="photo-flow">${(x.photos||[]).map(p=>`<a href="${p}" target="_blank"><img src="${p}" class="photo-thumb"></a>`).join('')}</div></td>
+                <td style="font-family: monospace; color: #666; font-size: 12px; white-space: nowrap;">Lat: ${x.lat ? x.lat.toFixed(5):'?'}<br>Lng: ${x.lng ? x.lng.toFixed(5):'?'}</td>
+                <td style="white-space: nowrap;">
+                    <span style="font-size:13px; color:#333; font-weight:bold;">${x.village}</span><br>
+                    <span class="chief-tag ${chief.gender==='F'?'chief-female':'chief-male'}">${chief.name}</span>
+                </td>
+                <td>
+                    <div class="action-column">
+                        <button class="btn-link action-btn edit-btn" onclick="openEdit('${x.id}')">✏️ 修改</button>
+                        <button class="btn-link action-btn del-btn" onclick="deleteStore('${x.id}', '${x.storeName}')">🗑️ 刪除</button>
+                    </div>
+                </td>
+                <td></td>
+            </tr>`;
         });
         document.getElementById('dataCount').innerText = `(共 ${data.length} 筆)`;
     }
 
+    window.deleteStore = async (id, name) => {
+        const pwd = prompt(`確定要刪除「${name}」嗎？\n請輸入刪除密碼：`);
+        if (pwd !== "1128") return;
+        if (confirm(`確定刪除？`)) {
+            try { await deleteDoc(doc(db, "friendly_stores", id)); alert("✅ 刪除成功！"); loadAll(); } catch (e) {}
+        }
+    };
+
+    function updateAdminMap(lat, lng) {
+        if (!adminMap) {
+            adminMap = L.map('editMap').setView([lat, lng], 18);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(adminMap);
+        } else {
+            adminMap.setView([lat, lng], 18);
+        }
+
+        if (adminMarker) adminMap.removeLayer(adminMarker);
+        if (addressMarker) { adminMap.removeLayer(addressMarker); addressMarker = null; }
+        
+        adminMarker = L.marker([lat, lng], {
+            draggable: true,
+            icon: L.icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png', shadowSize: [41, 41], iconSize: [25, 41], iconAnchor: [12, 41]})
+        }).addTo(adminMap).bindPopup("🟢 實際儲存位置");
+
+        adminMarker.on('dragend', function(event) {
+            const pos = event.target.getLatLng();
+            document.getElementById('editLat').value = pos.lat.toFixed(6);
+            document.getElementById('editLng').value = pos.lng.toFixed(6);
+        });
+        
+        setTimeout(() => adminMap.invalidateSize(), 200);
+    }
+
+    window.openEdit = (id) => {
+        const x = allData.find(d => d.id === id); if(!x) return;
+        document.getElementById('editId').value = id; 
+        document.getElementById('editName').value = x.storeName; 
+        document.getElementById('editAddr').value = x.address || '';
+        document.getElementById('editVillage').value = x.village || '';
+        
+        document.getElementById('apiVillageResult').innerText = "";
+        
+        let lat = x.lat || 24.993, lng = x.lng || 121.496;
+        document.getElementById('editLat').value = lat; 
+        document.getElementById('editLng').value = lng;
+        
+        document.getElementById('editBox').checked = (x.tissues === 'V' || x.tissueBox === 'V');
+        document.getElementById('editBanners').checked = x.banners === 'V'; 
+        document.getElementById('editBoards').checked = x.boards === 'V';
+        document.getElementById('editNotes').value = x.notes || ''; 
+        
+        document.getElementById('editModal').style.display='block'; 
+        document.getElementById('modalOverlay').style.display='block';
+        
+        updateAdminMap(lat, lng);
+    };
+    
     window.adminFetchGps = async () => {
         let addr = document.getElementById('editAddr').value;
         if(!addr) return alert("請先填寫地址");
         if(!addr.includes("市") && !addr.includes("縣")) addr = "新北市中和區" + addr;
-        const btn = document.getElementById('adminBtnGps'); btn.innerText = "⏳ 查詢中";
-        const resultText = document.getElementById('apiVillageResult'); resultText.innerText = "🔄 正在解析地址資訊...";
+        
+        const btn = document.getElementById('adminBtnGps');
+        btn.innerText = "⏳ 查詢中";
+        document.getElementById('apiVillageResult').innerText = "🔄 正在解析地址資訊...";
+        
         try {
             const res = await fetch(GAS_API_URL + "?address=" + encodeURIComponent(addr));
             const data = await res.json();
+            
             if(data.status === 'OK') {
-                const apiLat = data.results[0].geometry.location.lat, apiLng = data.results[0].geometry.location.lng;
+                const apiLat = data.results[0].geometry.location.lat;
+                const apiLng = data.results[0].geometry.location.lng;
+                
                 if (addressMarker) adminMap.removeLayer(addressMarker);
-                addressMarker = L.marker([apiLat, apiLng], {icon: L.icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png', shadowSize:[41,41], iconSize:[25,41], iconAnchor:[12,41]})}).addTo(adminMap).bindPopup("🔵 地址 API 查詢點").openPopup();
-                adminMap.fitBounds(new L.featureGroup([adminMarker, addressMarker]).getBounds().pad(0.2));
-                const vRes = await fetch(`https://api.nlsc.gov.tw/other/TownVillagePointQuery/${apiLng}/${apiLat}`);
-                const vName = new DOMParser().parseFromString(await vRes.text(), "text/xml").getElementsByTagName("villageName")[0]?.textContent;
+                addressMarker = L.marker([apiLat, apiLng], {
+                    icon: L.icon({
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png', 
+                        shadowSize: [41, 41], iconSize: [25, 41], iconAnchor: [12, 41]
+                    })
+                }).addTo(adminMap).bindPopup("🔵 地址 API 查詢點").openPopup();
+
+                const group = new L.featureGroup([adminMarker, addressMarker]);
+                adminMap.fitBounds(group.getBounds().pad(0.2));
+
+                // 準備 NLSC 按鈕連結
                 const nlscUrl = `https://maps.nlsc.gov.tw/S_Maps/default.aspx?lat=${apiLat}&lon=${apiLng}&z=18`;
-                resultText.innerHTML = `✅ API 判定里別：<span style="background:#fff3cd; padding:2px 6px; border-radius:4px;">${vName || "未知"}</span><br><a href="${nlscUrl}" target="_blank" class="nlsc-btn">🌐 在國土測繪圖資雲開啟</a>`;
+                const nlscBtnHtml = `<a href="${nlscUrl}" target="_blank" style="margin-left:8px; background:#1a73e8; color:white; padding:4px 8px; border-radius:4px; text-decoration:none; font-size:12px; display:inline-block; margin-top:4px;">🗺️ 在 NLSC 開啟</a>`;
+
+                try {
+                    const vRes = await fetch(`https://api.nlsc.gov.tw/other/TownVillagePointQuery/${apiLng}/${apiLat}`);
+                    const vName = new DOMParser().parseFromString(await vRes.text(), "text/xml").getElementsByTagName("villageName")[0]?.textContent;
+                    
+                    if(vName) {
+                        document.getElementById('apiVillageResult').innerHTML = `✅ API 判定地址里別：<span style="color:#d9534f; font-size:15px; background:#fff3cd; padding:2px 6px; border-radius:4px;">${vName}</span>` + nlscBtnHtml;
+                    } else {
+                        document.getElementById('apiVillageResult').innerHTML = `⚠️ 無法從座標判定該地址里別` + nlscBtnHtml;
+                    }
+                } catch(ve) {
+                    document.getElementById('apiVillageResult').innerHTML = `⚠️ 里別 API 查詢失敗` + nlscBtnHtml;
+                }
+
+            } else {
+                alert("找不到對應的座標，請檢查地址。");
+                document.getElementById('apiVillageResult').innerText = "";
             }
-        } catch(e) { alert("API 連線失敗"); }
+        } catch(e) {
+            alert("API 連線失敗，請檢查網路。");
+            document.getElementById('apiVillageResult').innerText = "";
+        }
         btn.innerText = "🔍 轉座標比對";
     };
 
-    window.openEdit = (id) => {
-        const x = allData.find(d => d.id === id); if(!x) return;
-        document.getElementById('editId').value = id; document.getElementById('editName').value = x.storeName; document.getElementById('editAddr').value = x.address || ''; document.getElementById('editVillage').value = x.village || '';
-        document.getElementById('apiVillageResult').innerText = "";
-        let lat = x.lat || 24.993, lng = x.lng || 121.496;
-        document.getElementById('editLat').value = lat; document.getElementById('editLng').value = lng;
-        document.getElementById('editBox').checked = (x.tissues === 'V' || x.tissueBox === 'V'); document.getElementById('editBanners').checked = x.banners === 'V'; document.getElementById('editBoards').checked = x.boards === 'V';
-        document.getElementById('editNotes').value = x.notes || ''; document.getElementById('editModal').style.display='block'; document.getElementById('modalOverlay').style.display='block';
-        if (!adminMap) { adminMap = L.map('editMap').setView([lat, lng], 18); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(adminMap); } else { adminMap.setView([lat, lng], 18); }
-        if (adminMarker) adminMap.removeLayer(adminMarker); if (addressMarker) { adminMap.removeLayer(addressMarker); addressMarker = null; }
-        adminMarker = L.marker([lat, lng], {draggable: true, icon: L.icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png', shadowSize:[41,41], iconSize:[25,41], iconAnchor:[12,41]})}).addTo(adminMap).bindPopup("🟢 實際儲存位置");
-        adminMarker.on('dragend', (e) => { const pos = e.target.getLatLng(); document.getElementById('editLat').value = pos.lat.toFixed(6); document.getElementById('editLng').value = pos.lng.toFixed(6); });
-        setTimeout(() => adminMap.invalidateSize(), 200);
-    };
-
     window.closeModal = () => { document.getElementById('editModal').style.display='none'; document.getElementById('modalOverlay').style.display='none'; };
+    
     window.saveEdit = async () => {
-        const id = document.getElementById('editId').value, btn = document.getElementById('saveEditBtn');
+        const id = document.getElementById('editId').value; const btn = document.getElementById('saveEditBtn');
         btn.disabled = true; btn.innerText = "⏳ 儲存中...";
         try {
-            const lat = parseFloat(document.getElementById('editLat').value), lng = parseFloat(document.getElementById('editLng').value);
-            const vName = document.getElementById('editVillage').value.trim() || "未定位", chief = chiefBrain[vName] || { district: "未知" };
-            await updateDoc(doc(db, "friendly_stores", id), { storeName: document.getElementById('editName').value, address: document.getElementById('editAddr').value, lat, lng, village: vName, district: chief.district, tissues: "", tissueBox: document.getElementById('editBox').checked ? "V" : "", banners: document.getElementById('editBanners').checked ? "V" : "", boards: document.getElementById('editBoards').checked ? "V" : "", notes: document.getElementById('editNotes').value });
+            const lat = parseFloat(document.getElementById('editLat').value);
+            const lng = parseFloat(document.getElementById('editLng').value);
+            const vName = document.getElementById('editVillage').value.trim() || "未定位";
+            const chief = chiefBrain[vName] || { district: "未知" };
+
+            await updateDoc(doc(db, "friendly_stores", id), { 
+                storeName: document.getElementById('editName').value, 
+                address: document.getElementById('editAddr').value, 
+                lat, lng, 
+                village: vName, district: chief.district,
+                tissues: "", 
+                tissueBox: document.getElementById('editBox').checked ? "V" : "", 
+                banners: document.getElementById('editBanners').checked ? "V" : "", 
+                boards: document.getElementById('editBoards').checked ? "V" : "", 
+                notes: document.getElementById('editNotes').value 
+            });
             alert("✅ 儲存成功！"); closeModal(); loadAll();
         } catch (e) { alert("❌ 儲存失敗"); }
         btn.disabled = false; btn.innerText = "✅ 儲存修改";
     };
 
-    window.deleteStore = async (id, name) => { const pwd = prompt(`確定要刪除「${name}」嗎？\n請輸入刪除密碼：`); if (pwd === "1128" && confirm(`確定刪除？`)) { await deleteDoc(doc(db, "friendly_stores", id)); alert("✅ 刪除成功！"); loadAll(); } };
-    window.exportToExcel = () => { /* 沿用原匯出代碼 */ };
+    window.exportToExcel = () => {
+        const dataToExport = window.currentFilteredData && window.currentFilteredData.length > 0 ? window.currentFilteredData : allData;
+        if (dataToExport.length === 0) { alert("沒有資料可以匯出！"); return; }
+        let csvContent = "\uFEFF,,,友善店家,,,,,,,, \n序號,里別,店名,地址,聯絡方式,聯絡人,面紙,布條,看板,備註,,補給日\n";
+        dataToExport.forEach((x, i) => {
+            csvContent += `${i+1},${x.village||""},${x.storeName?`"${x.storeName.replace(/"/g, '""')}"`:""},${x.address?`"${x.address.replace(/"/g, '""')}"`:""},,,${(x.tissues==='V'||x.tissueBox==='V')?"V":""},${x.banners==='V'?"V":""},${x.boards==='V'?"V":""},${x.notes?`"${x.notes.replace(/"/g, '""')}"`:""},,\n`;
+        });
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a"); link.href = URL.createObjectURL(blob);
+        link.download = `友善店家清單_${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    };
+
     loadAll();
 </script>
 </body>
