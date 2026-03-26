@@ -8,8 +8,13 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         body { margin: 0; padding: 0; font-family: '微軟正黑體', sans-serif; display: flex; height: 100vh; flex-direction: row; overflow: hidden; }
-        #map { flex: 2; height: 100%; z-index: 1; transition: flex 0.4s ease; }
-        #sidebar { flex: 1; padding: 15px; overflow-y: auto; background: #fff; box-shadow: -2px 0 5px rgba(0,0,0,0.1); z-index: 1000; min-width: 320px; transition: all 0.3s ease; display: flex; flex-direction: column; -webkit-overflow-scrolling: touch; }
+        
+        /* 調整地圖與側邊欄的比例 */
+        #map { flex: 1; height: 100%; z-index: 1; transition: flex 0.4s ease; }
+        
+        /* 將側邊欄固定寬度為 360px，不再隨著螢幕無限變寬 */
+        #sidebar { width: 360px; flex: none; padding: 15px; overflow-y: auto; background: #fff; box-shadow: -2px 0 5px rgba(0,0,0,0.1); z-index: 1000; transition: all 0.3s ease; display: flex; flex-direction: column; -webkit-overflow-scrolling: touch; box-sizing: border-box; }
+        
         .form-group { margin-bottom: 12px; background: #f8f9fa; padding: 10px; border-radius: 10px; border: 1px solid #eee; }
         .filter-group { background: #eef4ff; border: 1px solid #d0e1ff; margin-bottom: 15px; padding: 12px; border-radius: 10px; }
         input[type="text"], input[type="file"], select { width: 100%; padding: 12px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; }
@@ -45,7 +50,15 @@
         .confetti { position: absolute; top: -10vh; font-size: 36px; z-index: 10001; animation: fall linear forwards; pointer-events: none; }
         @keyframes fall { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 80% { opacity: 1; } 100% { transform: translateY(120vh) rotate(360deg); opacity: 0; } }
 
-        @media (max-width: 768px) { body { flex-direction: column; } #map { flex: 1; min-height: 35vh; } #sidebar { flex: none; height: auto; max-height: 65vh; min-height: 60px; padding-bottom: 50px; } #sidebar.is-expanded { flex: 3; height: 65vh; } .easter-text { font-size: 40px; } .easter-sub { font-size: 24px; } }
+        /* 手機版樣式微調 */
+        @media (max-width: 768px) { 
+            body { flex-direction: column; } 
+            #map { flex: 1; min-height: 35vh; } 
+            #sidebar { width: 100%; flex: none; height: auto; max-height: 65vh; min-height: 60px; padding-bottom: 50px; } 
+            #sidebar.is-expanded { flex: 3; height: 65vh; } 
+            .easter-text { font-size: 40px; } 
+            .easter-sub { font-size: 24px; } 
+        }
     </style>
 </head>
 <body>
@@ -85,6 +98,7 @@
             <div class="form-group"><label><b>1. 店家名稱*</b></label><input type="text" id="storeName" placeholder="請輸入店名"></div>
             <div class="form-group">
                 <label><b>2. 位置定位* (輸入地址或點擊地圖)</b></label>
+                
                 <div class="flex-row">
                     <button type="button" id="btnGps" class="action-btn" style="width: 100%;">📱 手機定位</button>
                 </div>
@@ -191,18 +205,39 @@
     function stopCycle() { if(cycleTimer) clearInterval(cycleTimer); }
     function startCycle(container) { stopCycle(); const photos = Array.from(container.querySelectorAll('.stack-photo')); if (photos.length < 2) { if(photos.length==1) bringToFront(photos[0]); return; } cycleTimer = setInterval(() => { currentIdx = (currentIdx + 1) % photos.length; bringToFront(photos[currentIdx]); }, 1800); }
 
-    var map = L.map('map', { zoomControl: false }).setView([24.993, 121.496], 13.5); 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© CARTO' }).addTo(map);
+    // ==========================================
+    // 🌍 設定多種底圖供選擇
+    // ==========================================
+    const googleStreets = L.tileLayer('http://mt0.google.com/vt/lyrs=m&hl=zh-TW&x={x}&y={y}&z={z}', { attribution: '© Google', maxZoom: 20 });
+    const googleSat = L.tileLayer('http://mt0.google.com/vt/lyrs=s&hl=zh-TW&x={x}&y={y}&z={z}', { attribution: '© Google', maxZoom: 20 });
+    const cartoLight = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© CARTO', maxZoom: 19 });
+    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM', maxZoom: 19 });
+
+    var map = L.map('map', { 
+        zoomControl: false,
+        layers: [googleStreets] // 預設使用 Google 街道圖，大家最習慣
+    }).setView([24.993, 121.496], 13.5); 
+    
+    // 將底圖加入圖層控制器
+    const baseMaps = {
+        "Google 地圖": googleStreets,
+        "Google 衛星圖": googleSat,
+        "簡約地圖 (Carto)": cartoLight,
+        "標準地圖 (OSM)": osm
+    };
+    L.control.layers(baseMaps, null, {position: 'topright'}).addTo(map);
+
     L.control.zoom({ position: 'topleft' }).addTo(map);
     var HomeBtn = L.Control.extend({ options: { position: 'topleft' }, onAdd: function (map) { var btn = L.DomUtil.create('div', 'home-btn'); btn.innerHTML = '🏠'; btn.onclick = function() { map.setView([24.993, 121.496], 13.5); }; return btn; } });
     map.addControl(new HomeBtn());
 
+    // 處理互動模式切換
     window.setInteractionMode = (mode) => {
         interactionMode = mode;
         document.getElementById('modeView').classList.toggle('mode-active', mode === 'view');
         document.getElementById('modeEdit').classList.toggle('mode-active', mode === 'edit');
         
-        // 關鍵：在新增模式下，完全隱藏地圖篩選區塊
+        // ★ 在新增模式下，隱藏地圖篩選區塊
         document.getElementById('filterGroup').style.display = (mode === 'edit' ? 'none' : 'block');
 
         document.getElementById('editFormArea').style.opacity = (mode === 'edit' ? '1' : '0.4');
@@ -386,6 +421,9 @@
             document.getElementById('geoStatus').innerText = "尚未定位"; document.getElementById('geoStatus').style.color = "#d9534f";
             document.getElementById('locationCorrection').style.display = 'none';
             if(marker) map.removeLayer(marker); loadExistingStores();
+            
+            // 送出成功後切換回鎖定地圖模式
+            setInteractionMode('view');
         } catch(e) { alert("❌ 錯誤: " + e.message); }
         btn.disabled = false; btn.innerText = "🚀 送出資料";
     };
