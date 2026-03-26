@@ -43,6 +43,7 @@
     <div class="header-title">
         <h2 style="margin: 0;">📊 控制台</h2>
         <span id="dataCount" style="font-size:14px; color:#666;"></span>
+        <button onclick="exportToExcel()" style="margin-left: auto; background: #107c41; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">📥 匯出 Excel</button>
     </div>
     
     <div class="filter-row" style="border-top: none;">
@@ -104,6 +105,7 @@
     const app = initializeApp(firebaseConfig); 
     const db = getFirestore(app);
     let allData = [], chiefBrain = {};
+    window.currentFilteredData = []; // 紀錄篩選後的資料
 
     async function loadAll() {
         const cSnap = await getDocs(collection(db, "chief_data"));
@@ -141,6 +143,8 @@
 
             return tMatch && dMatch && sMatch;
         });
+        
+        window.currentFilteredData = filtered; // 將篩選結果存起來給匯出功能用
         render(filtered);
     };
 
@@ -250,6 +254,57 @@
             alert("✅ 儲存成功！"); closeModal(); loadAll();
         } catch (e) { alert("❌ 儲存失敗"); }
         btn.disabled = false; btn.innerText = "✅ 儲存修改";
+    };
+
+    // 匯出 Excel 功能
+    window.exportToExcel = () => {
+        // 使用畫面上正在顯示的資料 (如果有篩選，就只出篩選後的)
+        const dataToExport = window.currentFilteredData && window.currentFilteredData.length > 0 ? window.currentFilteredData : allData;
+        
+        if (dataToExport.length === 0) {
+            alert("沒有資料可以匯出！");
+            return;
+        }
+
+        // 加入 UTF-8 BOM，防止 Excel 打開中文變成亂碼
+        let csvContent = "\uFEFF";
+        
+        // 依照圖片格式建構標題列
+        csvContent += ",,,友善店家,,,,,,,, \n";
+        // 欄位名稱
+        csvContent += "序號,里別,店名,地址,聯絡方式,聯絡人,面紙,布條,看板,備註,,補給日\n";
+
+        // 寫入每一筆資料
+        dataToExport.forEach((x, index) => {
+            const seq = index + 1; // 序號
+            const village = x.village || ""; // 里別
+            const name = x.storeName ? `"${x.storeName.replace(/"/g, '""')}"` : ""; // 店名
+            const addr = x.address ? `"${x.address.replace(/"/g, '""')}"` : ""; // 地址
+            const phone = ""; // 聯絡方式
+            const contact = ""; // 聯絡人
+            const tissues = (x.tissues === 'V' || x.tissueBox === 'V') ? "V" : ""; // 面紙
+            const banners = (x.banners === 'V') ? "V" : ""; // 布條
+            const boards = (x.boards === 'V') ? "V" : ""; // 看板
+            const notes = x.notes ? `"${x.notes.replace(/"/g, '""')}"` : ""; // 備註
+            const emptyCol = ""; // 空白欄
+            const restock = ""; // 補給日
+
+            csvContent += `${seq},${village},${name},${addr},${phone},${contact},${tissues},${banners},${boards},${notes},${emptyCol},${restock}\n`;
+        });
+
+        // 建立 Blob 與下載連結
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        
+        // 設定下載檔名 (加上當天日期)
+        const today = new Date().toISOString().slice(0, 10);
+        link.setAttribute("download", `友善店家清單_${today}.csv`);
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     loadAll();
