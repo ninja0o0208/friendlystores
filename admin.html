@@ -34,11 +34,13 @@
         .photo-flow { display: flex; flex-wrap: wrap; gap: 4px; max-width: 140px; }
         .photo-thumb { width: 42px; height: 42px; border-radius: 4px; object-fit: cover; border: 1px solid #eee; margin: 0; }
         
-        /* 編輯視窗加寬一點容納地圖 */
         #editModal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; box-shadow:0 0 25px rgba(0,0,0,0.3); border-radius:12px; z-index:100; width:500px; max-width: 95%; max-height: 90vh; overflow-y: auto; }
         .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:99; }
         
-        #editMap { width: 100%; height: 200px; border-radius: 8px; border: 1px solid #ccc; margin-bottom: 10px; z-index: 1; }
+        #editMap { width: 100%; height: 200px; border-radius: 8px; border: 1px solid #ccc; margin-bottom: 5px; z-index: 1; }
+        
+        /* 標示用的藍字 */
+        .api-result-text { font-size: 13px; color: #0056b3; font-weight: bold; margin-bottom: 10px; min-height: 18px; }
     </style>
 </head>
 <body>
@@ -88,20 +90,25 @@
     
     <label>店名</label> <input type="text" id="editName" style="width:100%; margin-bottom:12px;">
     
-    <label>地址與座標 (若地址變更，可點擊轉座標)</label>
-    <div style="display:flex; gap:8px; margin-bottom:10px;">
+    <label>地址與座標比對</label>
+    <div style="display:flex; gap:8px; margin-bottom:4px;">
         <input type="text" id="editAddr" style="flex:1;">
-        <button type="button" onclick="adminFetchGps()" id="adminBtnGps" style="background:#ffc107; color:#333; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">🔍 轉座標</button>
+        <button type="button" onclick="adminFetchGps()" id="adminBtnGps" style="background:#ffc107; color:#333; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">🔍 轉座標比對</button>
     </div>
+    
+    <div id="apiVillageResult" class="api-result-text"></div>
 
     <div id="editMap"></div>
-    <div style="font-size:11px; color:#d9534f; margin-bottom:12px; text-align:center;">💡 提示：如果座標有誤差，可以直接在上方地圖拖曳綠色地標微調！</div>
+    <div style="font-size:11px; color:#d9534f; margin-bottom:12px; text-align:center; font-weight:bold;">
+        🟢 綠色：實際儲存位置 (可拖曳修改) ｜ 🔵 藍色：地址 API 定位點
+    </div>
 
     <div style="display:flex; gap:10px; margin-bottom:12px;">
         <div style="flex:1;"><label>緯度 (Lat)</label><input type="text" id="editLat" style="width:100%;"></div>
         <div style="flex:1;"><label>經度 (Lng)</label><input type="text" id="editLng" style="width:100%;"></div>
-        <div style="flex:1;"><label>里別 (可手動)</label><input type="text" id="editVillage" style="width:100%; background:#fffde7;"></div>
+        <div style="flex:1;"><label>儲存里別</label><input type="text" id="editVillage" style="width:100%; background:#fffde7;"></div>
     </div>
+    
     <div style="margin-bottom:12px;">
         <b>物資：</b><br>
         <label><input type="checkbox" id="editBox"> 面紙盒</label> 
@@ -118,7 +125,6 @@
     import { getFirestore, collection, getDocs, updateDoc, doc, deleteDoc, orderBy, query } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
     const firebaseConfig = { apiKey: "AIzaSyAI2OmA4VUUes3psK5cYJL-xqG_UVxv8iU", authDomain: "friendly-stores.firebaseapp.com", projectId: "friendly-stores", storageBucket: "friendly-stores.firebasestorage.app", databaseURL: "https://friendly-stores-default-rtdb.asia-southeast1.firebasedatabase.app" };
-    // GAS API 共用
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz9gxnqk55tZ2AU9q0zm3S44m-dgK_aYSJtGYrGkHjREu3-JgPVFEEem7bmbPOcRFEa/exec";
     
     const app = initializeApp(firebaseConfig); 
@@ -126,8 +132,10 @@
     let allData = [], chiefBrain = {};
     window.currentFilteredData = [];
     
+    // 地圖與雙地標變數
     let adminMap = null;
-    let adminMarker = null;
+    let adminMarker = null;   // 綠色 (實際儲存點)
+    let addressMarker = null; // 藍色 (API 地址點)
 
     async function loadAll() {
         const cSnap = await getDocs(collection(db, "chief_data"));
@@ -207,7 +215,7 @@
         }
     };
 
-    // ★ 初始化或更新編輯地圖
+    // 初始化/重置編輯地圖
     function updateAdminMap(lat, lng) {
         if (!adminMap) {
             adminMap = L.map('editMap').setView([lat, lng], 18);
@@ -216,22 +224,23 @@
             adminMap.setView([lat, lng], 18);
         }
 
+        // 每次打開新的視窗，清除舊的標記
         if (adminMarker) adminMap.removeLayer(adminMarker);
+        if (addressMarker) { adminMap.removeLayer(addressMarker); addressMarker = null; }
         
-        // 建立可拖曳的綠色地標
+        // 建立綠色可拖曳地標 (代表實際要存入資料庫的位置)
         adminMarker = L.marker([lat, lng], {
             draggable: true,
             icon: L.icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png', shadowSize: [41, 41], iconSize: [25, 41], iconAnchor: [12, 41]})
-        }).addTo(adminMap);
+        }).addTo(adminMap).bindPopup("🟢 實際儲存位置");
 
-        // 拖曳結束時，更新經緯度輸入框
+        // 拖曳綠色地標時，更新經緯度輸入框
         adminMarker.on('dragend', function(event) {
             const pos = event.target.getLatLng();
             document.getElementById('editLat').value = pos.lat.toFixed(6);
             document.getElementById('editLng').value = pos.lng.toFixed(6);
         });
         
-        // 讓 Leaflet 知道容器顯示了，否則地圖可能會破圖
         setTimeout(() => adminMap.invalidateSize(), 200);
     }
 
@@ -241,6 +250,9 @@
         document.getElementById('editName').value = x.storeName; 
         document.getElementById('editAddr').value = x.address || '';
         document.getElementById('editVillage').value = x.village || '';
+        
+        // 清空 API 查詢結果提示
+        document.getElementById('apiVillageResult').innerText = "";
         
         let lat = x.lat || 24.993, lng = x.lng || 121.496;
         document.getElementById('editLat').value = lat; 
@@ -254,35 +266,64 @@
         document.getElementById('editModal').style.display='block'; 
         document.getElementById('modalOverlay').style.display='block';
         
-        // 更新地圖位置
         updateAdminMap(lat, lng);
     };
     
-    // ★ Admin 地址轉換 GPS 功能
+    // 轉座標比對功能
     window.adminFetchGps = async () => {
         let addr = document.getElementById('editAddr').value;
         if(!addr) return alert("請先填寫地址");
         if(!addr.includes("市") && !addr.includes("縣")) addr = "新北市中和區" + addr;
         
         const btn = document.getElementById('adminBtnGps');
-        btn.innerText = "⏳ 載入中";
+        btn.innerText = "⏳ 查詢中";
+        document.getElementById('apiVillageResult').innerText = "🔄 正在解析地址資訊...";
         
         try {
+            // 1. 抓取 Google 座標
             const res = await fetch(GAS_API_URL + "?address=" + encodeURIComponent(addr));
             const data = await res.json();
+            
             if(data.status === 'OK') {
-                const lat = data.results[0].geometry.location.lat;
-                const lng = data.results[0].geometry.location.lng;
-                document.getElementById('editLat').value = lat;
-                document.getElementById('editLng').value = lng;
-                updateAdminMap(lat, lng);
+                const apiLat = data.results[0].geometry.location.lat;
+                const apiLng = data.results[0].geometry.location.lng;
+                
+                // 2. 在地圖上放置藍色地標 (不可拖曳，僅供比對)
+                if (addressMarker) adminMap.removeLayer(addressMarker);
+                addressMarker = L.marker([apiLat, apiLng], {
+                    icon: L.icon({
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png', 
+                        shadowSize: [41, 41], iconSize: [25, 41], iconAnchor: [12, 41]
+                    })
+                }).addTo(adminMap).bindPopup("🔵 地址 API 查詢點").openPopup();
+
+                // 3. 自動縮放地圖，讓綠色(原本的)跟藍色(新查的)同時顯示在畫面上
+                const group = new L.featureGroup([adminMarker, addressMarker]);
+                adminMap.fitBounds(group.getBounds().pad(0.2));
+
+                // 4. 拿查到的座標，去國土測繪中心查里別
+                try {
+                    const vRes = await fetch(`https://api.nlsc.gov.tw/other/TownVillagePointQuery/${apiLng}/${apiLat}`);
+                    const vName = new DOMParser().parseFromString(await vRes.text(), "text/xml").getElementsByTagName("villageName")[0]?.textContent;
+                    
+                    if(vName) {
+                        document.getElementById('apiVillageResult').innerHTML = `✅ API 判定地址里別：<span style="color:#d9534f; font-size:15px; background:#fff3cd; padding:2px 6px; border-radius:4px;">${vName}</span>`;
+                    } else {
+                        document.getElementById('apiVillageResult').innerText = `⚠️ 無法從座標判定該地址里別`;
+                    }
+                } catch(ve) {
+                    document.getElementById('apiVillageResult').innerText = `⚠️ 里別 API 查詢失敗`;
+                }
+
             } else {
                 alert("找不到對應的座標，請檢查地址。");
+                document.getElementById('apiVillageResult').innerText = "";
             }
         } catch(e) {
-            alert("API 連線失敗，請手動拖曳地圖地標。");
+            alert("API 連線失敗，請檢查網路。");
+            document.getElementById('apiVillageResult').innerText = "";
         }
-        btn.innerText = "🔍 轉座標";
+        btn.innerText = "🔍 轉座標比對";
     };
 
     window.closeModal = () => { document.getElementById('editModal').style.display='none'; document.getElementById('modalOverlay').style.display='none'; };
@@ -291,6 +332,7 @@
         const id = document.getElementById('editId').value; const btn = document.getElementById('saveEditBtn');
         btn.disabled = true; btn.innerText = "⏳ 儲存中...";
         try {
+            // 注意：這裡存的是 editLat/editLng，也就是「綠色地標」的位置
             const lat = parseFloat(document.getElementById('editLat').value);
             const lng = parseFloat(document.getElementById('editLng').value);
             const vName = document.getElementById('editVillage').value.trim() || "未定位";
